@@ -18,7 +18,8 @@ target/
 *.iws
 *.iml
 *.ipr
-
+# Local config - données sensibles
+application-local.yml
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/
