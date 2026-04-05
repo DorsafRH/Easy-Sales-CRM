@@ -22,8 +22,8 @@ import java.time.LocalDateTime;
 /**
  * Service d'authentification.
  * Gère la connexion pour ProprietaireEntreprise (mobile) et SuperAdmin (Angular).
- * DEV-XX : Connexion ProprietaireEntreprise
- * DEV-XX : Connexion SuperAdmin
+ *  Connexion ProprietaireEntreprise
+ * Connexion SuperAdmin
  */
 @Slf4j
 @Service
@@ -33,6 +33,14 @@ public class AuthService implements IAuthService {
     private final UtilisateurRepository utilisateurRepository;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    /**
+     * Authentifie un utilisateur et retourne les tokens JWT ainsi que ses informations.
+     *
+     * @param request les credentials de connexion (e-mail et mot de passe)
+     * @return la réponse contenant les tokens JWT et les données de l'utilisateur connecté
+     * @throws BusinessException si les credentials sont incorrects, si le compte n'est pas actif,
+     *                           ou si le statut du compte entreprise empêche la connexion
+     */
 
     @Transactional
     public AuthResponse login(LoginRequest request) {
@@ -70,6 +78,13 @@ public class AuthService implements IAuthService {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+    /**
+     * Vérifie que le propriétaire d'entreprise est autorisé à se connecter
+     * en fonction du statut de son compte entreprise.
+     *
+     * @param proprietaire le propriétaire dont l'accès est vérifié
+     * @throws BusinessException si le compte est en attente, refusé ou suspendu
+     */
 
     private void verifierAccesProprietaire(ProprietaireEntreprise proprietaire) {
         if (proprietaire.getEntrepriseCompte() == null) {
@@ -89,7 +104,14 @@ public class AuthService implements IAuthService {
             case ACTIVE -> { /* OK */ }
         }
     }
-
+    /**
+     * Construit l'objet {@link AuthResponse} à partir des données de l'utilisateur et des tokens générés.
+     *
+     * @param utilisateur  l'utilisateur authentifié
+     * @param accessToken  le token JWT d'accès
+     * @param refreshToken le token JWT de rafraîchissement
+     * @return la réponse d'authentification complète
+     */
     private AuthResponse buildAuthResponse(Utilisateur utilisateur, String accessToken, String refreshToken) {
         AuthResponse.AuthResponseBuilder builder = AuthResponse.builder()
                 .accessToken(accessToken)

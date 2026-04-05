@@ -5,9 +5,13 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 /**
- * DTO de connexion partagé par les deux rôles :
- * - ProprietaireEntreprise (mobile) → DEV-XX
- * - SuperAdmin (Angular)            → DEV-XX
+ * DTO de connexion partagé par tous les rôles de l'application.
+ *
+ * <p>Utilisé aussi bien par le propriétaire d'entreprise (application mobile)
+ * que par le super-administrateur (backoffice Angular).
+ * Le rôle est déterminé côté serveur depuis la base de données.</p>
+ *
+ * @author Riahi Dorsaf
  */
 @Data
 public class LoginRequest {
