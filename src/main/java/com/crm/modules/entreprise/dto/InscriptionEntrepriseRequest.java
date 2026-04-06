@@ -9,7 +9,7 @@ import lombok.Data;
 
 /**
  * DTO pour la création d'un compte entreprise depuis l'application mobile.
- * DEV-18 : Création d'un compte entreprise
+ * Création d'un compte entreprise
  */
 @Data
 public class InscriptionEntrepriseRequest {

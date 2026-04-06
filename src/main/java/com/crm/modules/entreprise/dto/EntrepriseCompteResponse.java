@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 
 /**
  * DTO de réponse pour EntrepriseCompte.
- * Utilisé pour DEV-19, DEV-20, DEV-53.
  */
 @Data
 @Builder
@@ -30,7 +29,7 @@ public class EntrepriseCompteResponse {
     private LocalDateTime dateValidation;
     private String motifRefus;
 
-    // Infos du propriétaire (pour la vue admin DEV-53)
+    // Infos du propriétaire (pour la vue admin )
     private String proprietaireNom;
     private String proprietairePrenom;
     private String proprietaireEmail;

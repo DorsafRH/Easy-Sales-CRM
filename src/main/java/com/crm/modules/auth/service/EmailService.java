@@ -24,7 +24,7 @@ public class EmailService {
 
     /**
      * Envoie un email de confirmation de validation de compte.
-     * Appelé par le SuperAdmin après DEV-21 (valider).
+     * Appelé par le SuperAdmin après (valider).
      */
     @Async
     public void envoyerEmailValidation(String destinataire, String nomEntreprise) {
@@ -49,7 +49,7 @@ public class EmailService {
 
     /**
      * Envoie un email de refus de compte.
-     * Appelé par le SuperAdmin après DEV-21 (refuser).
+     * Appelé par le SuperAdmin après  (refuser).
      */
     @Async
     public void envoyerEmailRefus(String destinataire, String nomEntreprise, String motif) {

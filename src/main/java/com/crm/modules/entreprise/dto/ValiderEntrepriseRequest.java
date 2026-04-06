@@ -5,7 +5,7 @@ import lombok.Data;
 
 /**
  * DTO pour la décision du SuperAdmin sur un compte entreprise.
- * DEV-21 : Valider ou refuser un compte entreprise
+ * Valider ou refuser un compte entreprise
  */
 @Data
 public class ValiderEntrepriseRequest {
