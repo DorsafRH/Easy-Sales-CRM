@@ -46,3 +46,9 @@ springdoc:
     path: /swagger-ui.html
     try-it-out-enabled: true
   packages-to-scan: com.crm
+admin:
+  default:
+    email: ${ADMIN_EMAIL:admin@easysalescrm.com}
+    password: ${ADMIN_PASSWORD}
+    nom: ${ADMIN_NOM:Super}
+    prenom: ${ADMIN_PRENOM:Admin}

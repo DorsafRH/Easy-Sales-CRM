@@ -59,9 +59,14 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
 
+                        // ── Propriétaire (mobile) ──────────────────────────
                         .requestMatchers(HttpMethod.GET, "/entreprises/mon-compte/statut")
                         .hasAuthority("ROLE_PROPRIETAIRE")
 
+                        .requestMatchers("/proprietaire/**")
+                        .hasAuthority("ROLE_PROPRIETAIRE")
+
+                        // ── Super Admin (backoffice) ───────────────────────
                         .requestMatchers(HttpMethod.GET, "/admin/entreprises/en-attente")
                         .hasAuthority("ROLE_SUPER_ADMIN")
 
@@ -75,6 +80,9 @@ public class SecurityConfig {
                         .hasAuthority("ROLE_SUPER_ADMIN")
 
                         .requestMatchers(HttpMethod.DELETE, "/admin/entreprises/*")
+                        .hasAuthority("ROLE_SUPER_ADMIN")
+
+                        .requestMatchers("/admin/notifications/**")
                         .hasAuthority("ROLE_SUPER_ADMIN")
 
                         .anyRequest().authenticated()

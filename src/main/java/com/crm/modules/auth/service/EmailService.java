@@ -98,4 +98,32 @@ public class EmailService {
             log.error("Erreur lors de l'envoi de l'email de bienvenue à {} : {}", destinataire, e.getMessage());
         }
     }
+
+    /**
+     * Envoie un email de réinitialisation de mot de passe.
+     * Le lien expire dans 15 minutes.
+     */
+    @Async
+    public void envoyerEmailReinitialisationMotDePasse(
+            String destinataire, String prenom, String token) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(destinataire);
+            message.setSubject("🔐 Réinitialisation de votre mot de passe — Easy Sales CRM");
+            message.setText(
+                    "Bonjour " + prenom + ",\n\n" +
+                            "Vous avez demandé la réinitialisation de votre mot de passe.\n\n" +
+                            "Votre code de réinitialisation : " + token + "\n\n" +
+                            "Ce code est valable 15 minutes.\n" +
+                            "Si vous n'avez pas effectué cette demande, ignorez cet email.\n\n" +
+                            "Cordialement,\nL'équipe Easy Sales CRM"
+            );
+            mailSender.send(message);
+            log.info("Email de réinitialisation envoyé à {}", destinataire);
+        } catch (Exception e) {
+            log.error("Erreur lors de l'envoi de l'email de réinitialisation à {} : {}",
+                    destinataire, e.getMessage());
+        }
+    }
 }

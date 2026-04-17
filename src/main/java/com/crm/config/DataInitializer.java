@@ -5,17 +5,16 @@ import com.crm.modules.utilisateur.repository.UtilisateurRepository;
 import com.crm.shared.enums.RoleUtilisateur;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 /**
- * Initialise un SuperAdmin par défaut au démarrage de l'application
- * si aucun n'existe en base.
+ * Initialise un SuperAdmin par défaut au démarrage si aucun n'existe en base.
+ * Les credentials sont lus depuis les variables d'environnement.
  *
- * Credentials par défaut (à changer impérativement en production) :
- *   email    : admin@crm.com
- *   password : Admin@1234
+ * @author Riahi Dorsaf
  */
 @Slf4j
 @Component
@@ -25,22 +24,30 @@ public class DataInitializer implements CommandLineRunner {
     private final UtilisateurRepository utilisateurRepository;
     private final PasswordEncoder passwordEncoder;
 
-    private static final String DEFAULT_ADMIN_EMAIL    = "admin@crm.com";
-    private static final String DEFAULT_ADMIN_PASSWORD = "Admin@1234";
+    @Value("${admin.default.email:admin@easysalescrm.com}")
+    private String defaultAdminEmail;
+
+    @Value("${admin.default.password}")
+    private String defaultAdminPassword;
+
+    @Value("${admin.default.nom:Super}")
+    private String defaultAdminNom;
+
+    @Value("${admin.default.prenom:Admin}")
+    private String defaultAdminPrenom;
 
     @Override
     public void run(String... args) {
-        if (!utilisateurRepository.existsByEmail(DEFAULT_ADMIN_EMAIL)) {
+        if (!utilisateurRepository.existsByEmail(defaultAdminEmail)) {
             SuperAdmin admin = new SuperAdmin();
-            admin.setNom("Super");
-            admin.setPrenom("Admin");
-            admin.setEmail(DEFAULT_ADMIN_EMAIL);
-            admin.setMotDePasseHash(passwordEncoder.encode(DEFAULT_ADMIN_PASSWORD));
+            admin.setNom(defaultAdminNom);
+            admin.setPrenom(defaultAdminPrenom);
+            admin.setEmail(defaultAdminEmail);
+            admin.setMotDePasseHash(passwordEncoder.encode(defaultAdminPassword));
             admin.setRole(RoleUtilisateur.ROLE_SUPER_ADMIN);
 
             utilisateurRepository.save(admin);
-            log.warn("✅ SuperAdmin par défaut créé : {} / {}",
-                    DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASSWORD);
+            log.warn("✅ SuperAdmin par défaut créé : {}", defaultAdminEmail);
             log.warn("⚠️  Changez ce mot de passe immédiatement en production !");
         } else {
             log.info("SuperAdmin déjà présent en base — initialisation ignorée.");

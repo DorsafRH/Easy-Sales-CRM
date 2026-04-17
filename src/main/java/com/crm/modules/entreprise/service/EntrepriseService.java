@@ -5,6 +5,8 @@ import com.crm.modules.auth.service.EmailService;
 import com.crm.modules.entreprise.dto.*;
 import com.crm.modules.entreprise.entity.EntrepriseCompte;
 import com.crm.modules.entreprise.repository.EntrepriseCompteRepository;
+import com.crm.modules.notification.entity.TypeNotification;
+import com.crm.modules.notification.service.NotificationService;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
 import com.crm.modules.utilisateur.entity.SuperAdmin;
 import com.crm.modules.utilisateur.repository.ProprietaireRepository;
@@ -43,6 +45,7 @@ public class EntrepriseService implements IEntrepriseService {
     private final EntrepriseMapper           mapper;
     private final PasswordEncoder            passwordEncoder;
     private final EmailService               emailService;
+    private final NotificationService notificationService;
 
     // ── Inscription ───────────────────────────────────────────────────────────
 
@@ -86,7 +89,12 @@ public class EntrepriseService implements IEntrepriseService {
 
         log.info("Nouveau compte entreprise créé : {} ({})",
                 request.getNomEntreprise(), request.getEmail());
-
+        notificationService.creerNotification(
+                "Nouvelle inscription",
+                "L'entreprise \"" + request.getNomEntreprise() + "\" a soumis une demande de compte.",
+                TypeNotification.NOUVELLE_INSCRIPTION,
+                "/admin/entreprises/" + proprietaire.getEntrepriseCompte().getId()
+        );
         emailService.envoyerEmailBienvenue(
                 request.getEmail(),
                 request.getPrenom() + " " + request.getNom(),
