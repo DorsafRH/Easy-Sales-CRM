@@ -2,6 +2,7 @@ package com.crm.modules.auth.controller;
 
 import com.crm.modules.auth.dto.MotDePasseOublieRequest;
 import com.crm.modules.auth.dto.ReinitialisationMotDePasseRequest;
+import com.crm.modules.auth.dto.VerifierCodeRequest;
 import com.crm.modules.auth.service.IPasswordResetService;
 import com.crm.shared.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -77,5 +78,21 @@ public class PasswordResetController {
     ) {
         passwordResetService.reinitialiserMotDePasse(request);
         return ResponseEntity.ok(ApiResponse.success("Mot de passe réinitialisé avec succès."));
+    }
+    /**
+     * Vérifie le code à 6 chiffres reçu par email.
+     * Appelé avant l'écran de réinitialisation.
+     */
+    @Operation(
+            summary = "Vérifier le code de réinitialisation",
+            description = "Vérifie que le code à 6 chiffres est valide et non expiré."
+    )
+    @SecurityRequirements
+    @PostMapping("/verifier-code")
+    public ResponseEntity<ApiResponse<Void>> verifierCode(
+            @Valid @RequestBody VerifierCodeRequest request
+    ) {
+        passwordResetService.verifierCode(request.getToken());
+        return ResponseEntity.ok(ApiResponse.success("Code valide."));
     }
 }

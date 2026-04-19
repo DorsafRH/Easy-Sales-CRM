@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Service de réinitialisation de mot de passe.
@@ -39,10 +38,11 @@ public class PasswordResetService implements IPasswordResetService {
         Optional<Utilisateur> optUtilisateur =
                 utilisateurRepository.findByEmail(request.getEmail());
 
+        // ← CHANGEMENT : on révèle si l'email existe
         if (optUtilisateur.isEmpty()) {
-            // Ne pas révéler l'existence du compte (anti-enumération)
             log.info("[PASSWORD_RESET] Demande pour email inconnu : {}", request.getEmail());
-            return;
+            throw new BusinessException(
+                    "Aucun compte n'est associé à cette adresse email.");
         }
 
         Utilisateur utilisateur = optUtilisateur.get();
@@ -50,10 +50,11 @@ public class PasswordResetService implements IPasswordResetService {
         // Invalider les anciens tokens
         tokenRepository.invaliderTokensExistants(utilisateur.getId());
 
-        // Créer un nouveau token
-        String tokenValeur = UUID.randomUUID().toString();
+        // ← CHANGEMENT : code à 6 chiffres au lieu d'UUID
+        String code = String.format("%06d", new java.util.Random().nextInt(999999));
+
         PasswordResetToken resetToken = PasswordResetToken.builder()
-                .token(tokenValeur)
+                .token(code)
                 .utilisateur(utilisateur)
                 .dateExpiration(LocalDateTime.now().plusMinutes(EXPIRATION_MINUTES))
                 .utilise(false)
@@ -61,12 +62,12 @@ public class PasswordResetService implements IPasswordResetService {
 
         tokenRepository.save(resetToken);
 
-        log.info("[PASSWORD_RESET] Token généré pour : {}", utilisateur.getEmail());
+        log.info("[PASSWORD_RESET] Code généré pour : {}", utilisateur.getEmail());
 
         emailService.envoyerEmailReinitialisationMotDePasse(
                 utilisateur.getEmail(),
                 utilisateur.getPrenom(),
-                tokenValeur
+                code
         );
     }
 
@@ -93,5 +94,20 @@ public class PasswordResetService implements IPasswordResetService {
 
         log.info("[PASSWORD_RESET] Mot de passe réinitialisé pour : {}",
                 utilisateur.getEmail());
+    }
+
+    @Transactional(readOnly = true)
+    public void verifierCode(String token) {
+        PasswordResetToken resetToken = tokenRepository
+                .findByToken(token)
+                .orElseThrow(() -> new BusinessException(
+                        "Code invalide."));
+
+        if (!resetToken.estValide()) {
+            throw new BusinessException(
+                    "Ce code est expiré ou déjà utilisé.");
+        }
+
+        log.info("[PASSWORD_RESET] Code vérifié avec succès");
     }
 }
