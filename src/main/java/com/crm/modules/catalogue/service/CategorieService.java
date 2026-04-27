@@ -3,10 +3,10 @@ package com.crm.modules.catalogue.service;
 import com.crm.modules.catalogue.dto.CategorieRequest;
 import com.crm.modules.catalogue.dto.CategorieResponse;
 import com.crm.modules.catalogue.entity.Categorie;
-import com.crm.modules.catalogue.mapper.CatalogueMapper;
+import com.crm.modules.catalogue.mapper.CategorieMapper;
 import com.crm.modules.catalogue.repository.CategorieRepository;
 import com.crm.modules.catalogue.repository.ProduitRepository;
-import com.crm.modules.catalogue.specification.CatalogueSpecification;
+import com.crm.modules.catalogue.specification.CategorieSpecification;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
 import com.crm.shared.enums.StatutProduit;
 import com.crm.shared.exception.BusinessException;
@@ -28,22 +28,22 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class CatalogueService implements ICatalogueService {
+public class CategorieService implements ICategorieService {
 
     private final CategorieRepository categorieRepository;
     private final ProduitRepository   produitRepository;
-    private final CatalogueMapper     catalogueMapper;
+    private final CategorieMapper     categorieMapper;
 
     @Transactional(readOnly = true)
     @Override
     public List<CategorieResponse> listerCategories(Long proprietaireId, String keyword) {
         Specification<Categorie> spec =
-                CatalogueSpecification.duProprietaire(proprietaireId)
-                        .and(CatalogueSpecification.recherche(keyword));
+                CategorieSpecification.duProprietaire(proprietaireId)
+                        .and(CategorieSpecification.recherche(keyword));
 
         return categorieRepository.findAll(spec)
                 .stream()
-                .map(c -> enrichir(catalogueMapper.toResponse(c), c.getId()))
+                .map(c -> enrichir(categorieMapper.toResponse(c), c.getId()))
                 .toList();
     }
 
@@ -51,7 +51,7 @@ public class CatalogueService implements ICatalogueService {
     @Override
     public CategorieResponse obtenirCategorie(Long id, Long proprietaireId) {
         Categorie cat = charger(id, proprietaireId);
-        return enrichir(catalogueMapper.toResponse(cat), id);
+        return enrichir(categorieMapper.toResponse(cat), id);
     }
 
     @Override
@@ -67,8 +67,8 @@ public class CatalogueService implements ICatalogueService {
                 .proprietaire(proprietaire)
                 .build();
         cat = categorieRepository.save(cat);
-        log.info("[CATALOGUE] Catégorie créée — id={}", cat.getId());
-        return enrichir(catalogueMapper.toResponse(cat), cat.getId());
+        log.info("[CATEGORIE] Créée — id={}", cat.getId());
+        return enrichir(categorieMapper.toResponse(cat), cat.getId());
     }
 
     @Override
@@ -82,7 +82,7 @@ public class CatalogueService implements ICatalogueService {
         }
         cat.setNom(req.getNom());
         cat.setDescription(req.getDescription());
-        return enrichir(catalogueMapper.toResponse(categorieRepository.save(cat)), id);
+        return enrichir(categorieMapper.toResponse(categorieRepository.save(cat)), id);
     }
 
     @Override
@@ -93,11 +93,9 @@ public class CatalogueService implements ICatalogueService {
                     "Impossible de supprimer une catégorie contenant des produits actifs");
         }
         categorieRepository.delete(cat);
-        log.info("[CATALOGUE] Catégorie supprimée — id={}", id);
+        log.info("[CATEGORIE] Supprimée — id={}", id);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    //  HELPERS PRIVÉS
     // ─────────────────────────────────────────────────────────────────────────
 
     private Categorie charger(Long id, Long proprietaireId) {

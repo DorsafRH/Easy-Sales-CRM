@@ -10,9 +10,9 @@ import java.util.List;
  * Contrat du service de gestion des catégories du catalogue.
  *
  * @author Riahi Dorsaf
- * @see CatalogueService
+ * @see CategorieService
  */
-public interface ICatalogueService {
+public interface ICategorieService {
 
     /**
      * @param proprietaireId identifiant du propriétaire connecté

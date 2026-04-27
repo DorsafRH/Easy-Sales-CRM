@@ -8,9 +8,9 @@ import org.springframework.data.jpa.domain.Specification;
  *
  * @author Riahi Dorsaf
  */
-public class CatalogueSpecification {
+public class CategorieSpecification {
 
-    private CatalogueSpecification() {}
+    private CategorieSpecification() {}
 
     /** Filtre les catégories appartenant à un propriétaire donné. */
     public static Specification<Categorie> duProprietaire(Long proprietaireId) {
