@@ -24,6 +24,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+/**
+ * Configuration Spring Security — Sprint 1 + Sprint 2.
+ *
+ * @author Riahi Dorsaf
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -31,7 +36,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
-    private final JwtAuthFilter jwtAuthFilter;
+    private final JwtAuthFilter            jwtAuthFilter;
 
     private static final String[] PUBLIC_ENDPOINTS = {
             "/auth/**",
@@ -54,19 +59,28 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
 
-                        // ── Propriétaire (mobile) ──────────────────────────
+                        // ── Propriétaire — Sprint 1 ───────────────────────
                         .requestMatchers(HttpMethod.GET, "/entreprises/mon-compte/statut")
                         .hasAuthority("ROLE_PROPRIETAIRE")
 
                         .requestMatchers("/proprietaire/**")
                         .hasAuthority("ROLE_PROPRIETAIRE")
 
-                        // ── Super Admin (backoffice) ───────────────────────
+                        // ── Propriétaire — Sprint 2 ───────────────────────
+                        .requestMatchers("/clients/**")
+                        .hasAuthority("ROLE_PROPRIETAIRE")
+
+                        .requestMatchers("/catalogue/**")
+                        .hasAuthority("ROLE_PROPRIETAIRE")
+
+                        .requestMatchers("/reporting/**")
+                        .hasAuthority("ROLE_PROPRIETAIRE")
+
+                        // ── Super Admin ───────────────────────────────────
                         .requestMatchers(HttpMethod.GET, "/admin/entreprises/en-attente")
                         .hasAuthority("ROLE_SUPER_ADMIN")
 
@@ -119,7 +133,6 @@ public class SecurityConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
-
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
