@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -45,4 +46,15 @@ public interface ProduitRepository
 
     /** Compte les produits d'un propriétaire selon leur statut. */
     long countByProprietaireIdAndStatut(Long proprietaireId, StatutProduit statut);
+
+    /**
+     * Récupère tous les produits d'une catégorie appartenant à un propriétaire.
+     * Utilisé par {@link com.crm.modules.catalogue.service.CategorieService}
+     * pour traiter les produits avant suppression d'une catégorie.
+     *
+     * @param categorieId    identifiant de la catégorie
+     * @param proprietaireId identifiant du propriétaire (sécurité multi-tenant)
+     * @return liste des produits de la catégorie
+     */
+    List<Produit> findByCategorieIdAndProprietaireId(Long categorieId, Long proprietaireId);
 }
