@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,8 +37,7 @@ public interface ClientRepository
 
     /**
      * Compte les clients actifs d'un propriétaire.
-     * Utilisé par DashboardService (KPI nbClients).
-     * Appelé avec statut = "ACTIF".
+     * Utilisé par ReportingService (KPI nbClients — toutes périodes).
      */
     long countByProprietaireIdAndIsDeletedFalseAndStatut(
             Long proprietaireId, String statut);
@@ -47,4 +47,18 @@ public interface ClientRepository
      */
     List<Client> findTop5ByProprietaireIdAndIsDeletedFalseOrderByDateCreationDesc(
             Long proprietaireId);
+
+    // ── Ajout Sprint 2 — filtre par période ──────────────────
+
+    /**
+     * Compte les clients actifs créés après une date donnée.
+     * Utilisé par ReportingService pour filtrer les KPIs par période
+     * (AUJOURD_HUI / CE_MOIS / CETTE_ANNEE).
+     *
+     * @param proprietaireId identifiant du propriétaire
+     * @param statut         statut du client (ex: "ACTIF")
+     * @param since          date de début de la période (inclus)
+     */
+    long countByProprietaireIdAndIsDeletedFalseAndStatutAndDateCreationAfter(
+            Long proprietaireId, String statut, LocalDateTime since);
 }

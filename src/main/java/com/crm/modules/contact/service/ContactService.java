@@ -8,6 +8,8 @@ import com.crm.modules.contact.entity.Contact;
 import com.crm.modules.contact.mapper.ContactMapper;
 import com.crm.modules.contact.repository.ContactRepository;
 import com.crm.modules.contact.specification.ContactSpecification;
+import com.crm.modules.reporting.service.IActiviteService;
+import com.crm.shared.enums.TypeActivite;
 import com.crm.shared.exception.BusinessException;
 import com.crm.shared.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +43,16 @@ public class ContactService implements IContactService {
     private final ClientRepository  clientRepository;
     private final ContactMapper     contactMapper;
 
+    /**
+     * Injection via l'interface IActiviteService — pas l'implémentation concrète.
+     * Bonne pratique SOLID D : dépendre d'une abstraction, pas d'une implémentation.
+     */
+    private final IActiviteService  activiteService;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  LISTE
+    // ─────────────────────────────────────────────────────────────────────────
+
     @Transactional(readOnly = true)
     @Override
     public List<ContactResponse> lister(Long clientId, Long proprietaireId, String keyword) {
@@ -55,12 +67,20 @@ public class ContactService implements IContactService {
                 .toList();
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    //  DÉTAIL
+    // ─────────────────────────────────────────────────────────────────────────
+
     @Transactional(readOnly = true)
     @Override
     public ContactResponse obtenir(Long contactId, Long clientId, Long proprietaireId) {
         verifierAccesClient(clientId, proprietaireId);
         return contactMapper.toResponse(charger(contactId, clientId));
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  CRÉATION
+    // ─────────────────────────────────────────────────────────────────────────
 
     @Override
     public ContactResponse creer(Long clientId, ContactRequest req, Long proprietaireId) {
@@ -82,13 +102,27 @@ public class ContactService implements IContactService {
 
         contact = contactRepository.save(contact);
         log.info("[CONTACT] Créé — id={} clientId={}", contact.getId(), clientId);
+
+        // titre = label de l'action | description = nom du contact
+        // entiteParentId = clientId → navigation directe vers ContactDetail
+        activiteService.enregistrer(
+                TypeActivite.CONTACT_AJOUTE,
+                "Nouveau contact ajouté",
+                contact.getNom() + " " + contact.getPrenom(),
+                contact.getId(), "CONTACT", clientId,
+                client.getProprietaire());
+
         return contactMapper.toResponse(contact);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  MODIFICATION
+    // ─────────────────────────────────────────────────────────────────────────
 
     @Override
     public ContactResponse modifier(Long contactId, Long clientId,
                                     ContactRequest req, Long proprietaireId) {
-        verifierAccesClient(clientId, proprietaireId);
+        Client client = verifierAccesClient(clientId, proprietaireId);
         Contact contact = charger(contactId, clientId);
 
         if (Boolean.TRUE.equals(req.getIsPrincipal()) && !contact.isPrincipal()) {
@@ -106,22 +140,46 @@ public class ContactService implements IContactService {
 
         contact = contactRepository.save(contact);
         log.info("[CONTACT] Modifié — id={}", contactId);
+
+        activiteService.enregistrer(
+                TypeActivite.CONTACT_MODIFIE,
+                "Contact mis à jour",
+                contact.getNom() + " " + contact.getPrenom(),
+                contact.getId(), "CONTACT", clientId,
+                client.getProprietaire());
+
         return contactMapper.toResponse(contact);
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    //  SUPPRESSION
+    // ─────────────────────────────────────────────────────────────────────────
+
     @Override
     public void supprimer(Long contactId, Long clientId, Long proprietaireId) {
-        verifierAccesClient(clientId, proprietaireId);
+        Client client = verifierAccesClient(clientId, proprietaireId);
         Contact contact = charger(contactId, clientId);
+
         if (contact.isPrincipal()) {
             throw new BusinessException(
                     "Impossible de supprimer le contact principal. "
                             + "Définissez-en un autre d'abord.");
         }
+
+        String nomContact = contact.getNom() + " " + contact.getPrenom();
         contactRepository.deleteById(contact.getId());
         log.info("[CONTACT] Supprimé — id={}", contactId);
+
+        activiteService.enregistrer(
+                TypeActivite.CONTACT_SUPPRIME,
+                "Contact supprimé",
+                nomContact,
+                contactId, "CONTACT", clientId,
+                client.getProprietaire());
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    //  HELPERS PRIVÉS
     // ─────────────────────────────────────────────────────────────────────────
 
     private Client verifierAccesClient(Long clientId, Long proprietaireId) {

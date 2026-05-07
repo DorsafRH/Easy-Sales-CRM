@@ -9,7 +9,9 @@ import com.crm.modules.client.mapper.ClientMapper;
 import com.crm.modules.client.repository.ClientRepository;
 import com.crm.modules.client.specification.ClientSpecification;
 import com.crm.modules.contact.repository.ContactRepository;
+import com.crm.modules.reporting.service.IActiviteService;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
+import com.crm.shared.enums.TypeActivite;
 import com.crm.shared.exception.BusinessException;
 import com.crm.shared.exception.ResourceNotFoundException;
 import com.crm.shared.response.PageResponse;
@@ -40,6 +42,12 @@ public class ClientService implements IClientService {
     private final ContactRepository contactRepository;
     private final ClientMapper      clientMapper;
 
+    /**
+     * Injection via l'interface IActiviteService — pas l'implémentation concrète.
+     * Bonne pratique SOLID D : dépendre d'une abstraction, pas d'une implémentation.
+     */
+    private final IActiviteService  activiteService;
+
     // ─────────────────────────────────────────────────────────────────────────
     //  LISTE
     // ─────────────────────────────────────────────────────────────────────────
@@ -55,9 +63,7 @@ public class ClientService implements IClientService {
         Page<Client> pageResult = clientRepository.findAll(
                 spec, PageRequest.of(page, size, Sort.by("dateCreation").descending()));
 
-        Page<ClientResponse> mapped = pageResult.map(
-                c -> enrichir(clientMapper.toResponse(c), c));
-        return PageResponse.from(mapped);
+        return PageResponse.from(pageResult.map(c -> enrichir(clientMapper.toResponse(c), c)));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -83,6 +89,14 @@ public class ClientService implements IClientService {
         client = clientRepository.save(client);
         log.info("[CLIENT] Créé — type={} id={} proprietaire={}",
                 req.getTypeClient(), client.getId(), proprietaire.getId());
+
+        // titre = label de l'action | description = nom de l'entité
+        activiteService.enregistrer(
+                TypeActivite.CLIENT_CREE,
+                "Nouveau client ajouté",
+                client.getNomAffichage(),
+                client.getId(), "CLIENT", null, proprietaire);
+
         return enrichir(clientMapper.toResponse(client), client);
     }
 
@@ -98,6 +112,13 @@ public class ClientService implements IClientService {
         client.recalculerNomAffichage();
         client = clientRepository.save(client);
         log.info("[CLIENT] Modifié — id={}", id);
+
+        activiteService.enregistrer(
+                TypeActivite.CLIENT_MODIFIE,
+                "Client mis à jour",
+                client.getNomAffichage(),
+                client.getId(), "CLIENT", null, client.getProprietaire());
+
         return enrichir(clientMapper.toResponse(client), client);
     }
 
@@ -108,9 +129,17 @@ public class ClientService implements IClientService {
     @Override
     public void supprimer(Long id, Long proprietaireId) {
         Client client = charger(id, proprietaireId);
+        String nomAffichage = client.getNomAffichage();
+        ProprietaireEntreprise proprietaire = client.getProprietaire();
         client.supprimerLogiquement();
         clientRepository.save(client);
         log.info("[CLIENT] Supprimé logiquement — id={}", id);
+
+        activiteService.enregistrer(
+                TypeActivite.CLIENT_SUPPRIME,
+                "Client supprimé",
+                nomAffichage,
+                id, "CLIENT", null, proprietaire);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

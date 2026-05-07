@@ -7,8 +7,10 @@ import com.crm.modules.catalogue.mapper.ProduitMapper;
 import com.crm.modules.catalogue.repository.CategorieRepository;
 import com.crm.modules.catalogue.repository.ProduitRepository;
 import com.crm.modules.catalogue.specification.ProduitSpecification;
+import com.crm.modules.reporting.service.IActiviteService;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
 import com.crm.shared.enums.StatutProduit;
+import com.crm.shared.enums.TypeActivite;
 import com.crm.shared.enums.TypeProduit;
 import com.crm.shared.exception.BusinessException;
 import com.crm.shared.exception.ResourceNotFoundException;
@@ -41,6 +43,16 @@ public class ProduitService implements IProduitService {
     private final CategorieRepository categorieRepository;
     private final ProduitMapper       produitMapper;
 
+    /**
+     * Injection via l'interface IActiviteService — pas l'implémentation concrète.
+     * Bonne pratique SOLID D : dépendre d'une abstraction, pas d'une implémentation.
+     */
+    private final IActiviteService    activiteService;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  LECTURE
+    // ─────────────────────────────────────────────────────────────────────────
+
     @Transactional(readOnly = true)
     @Override
     public List<ProduitResponse> listerProduits(Long proprietaireId,
@@ -67,6 +79,10 @@ public class ProduitService implements IProduitService {
         return produitMapper.toResponse(charger(id, proprietaireId));
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    //  ÉCRITURE
+    // ─────────────────────────────────────────────────────────────────────────
+
     @Override
     public ProduitResponse creerProduit(ProduitRequest req,
                                         ProprietaireEntreprise proprietaire) {
@@ -74,6 +90,7 @@ public class ProduitService implements IProduitService {
                 req.getNom(), proprietaire.getId())) {
             throw new BusinessException("Un produit avec ce nom existe déjà");
         }
+
         Produit produit = new Produit();
         produit.setProprietaire(proprietaire);
         produit.setCodeProduit(genererCode(proprietaire.getId()));
@@ -81,6 +98,14 @@ public class ProduitService implements IProduitService {
         if (produit.getStatut() == null) produit.setStatut(StatutProduit.ACTIF);
         produit = produitRepository.save(produit);
         log.info("[PRODUIT] Créé — code={}", produit.getCodeProduit());
+
+        // titre = label de l'action | description = nom du produit
+        activiteService.enregistrer(
+                TypeActivite.PRODUIT_CREE,
+                "Nouveau produit ajouté",
+                produit.getNom(),
+                produit.getId(), "PRODUIT", null, proprietaire);
+
         return produitMapper.toResponse(produit);
     }
 
@@ -93,18 +118,106 @@ public class ProduitService implements IProduitService {
                 req.getNom(), proprietaireId)) {
             throw new BusinessException("Un produit avec ce nom existe déjà");
         }
+
         appliquer(req, produit, proprietaireId);
         produit.setDateModification(LocalDateTime.now());
-        return produitMapper.toResponse(produitRepository.save(produit));
+        produit = produitRepository.save(produit);
+
+        activiteService.enregistrer(
+                TypeActivite.PRODUIT_MODIFIE,
+                "Produit mis à jour",
+                produit.getNom(),
+                produit.getId(), "PRODUIT", null, produit.getProprietaire());
+
+        return produitMapper.toResponse(produit);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  ARCHIVAGE / DÉSARCHIVAGE
+    // ─────────────────────────────────────────────────────────────────────────
 
     @Override
     public void archiverProduit(Long id, Long proprietaireId) {
         Produit produit = charger(id, proprietaireId);
+        if (StatutProduit.ARCHIVE.equals(produit.getStatut())) {
+            throw new BusinessException("Ce produit est déjà archivé");
+        }
         produit.setStatut(StatutProduit.ARCHIVE);
         produit.setDateModification(LocalDateTime.now());
         produitRepository.save(produit);
         log.info("[PRODUIT] Archivé — id={}", id);
+
+        activiteService.enregistrer(
+                TypeActivite.PRODUIT_ARCHIVE,
+                "Produit archivé",
+                produit.getNom(),
+                id, "PRODUIT", null, produit.getProprietaire());
+    }
+
+    @Override
+    public void desarchiverProduit(Long id, Long proprietaireId) {
+        Produit produit = charger(id, proprietaireId);
+        if (!StatutProduit.ARCHIVE.equals(produit.getStatut())) {
+            throw new BusinessException("Ce produit n'est pas archivé");
+        }
+        produit.setStatut(StatutProduit.INACTIF);
+        produit.setDateModification(LocalDateTime.now());
+        produitRepository.save(produit);
+        log.info("[PRODUIT] Désarchivé → INACTIF — id={}", id);
+
+        activiteService.enregistrer(
+                TypeActivite.PRODUIT_DESARCHIVE,
+                "Produit désarchivé",
+                produit.getNom(),
+                id, "PRODUIT", null, produit.getProprietaire());
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  TOGGLE ACTIF / INACTIF
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Override
+    public void activerProduit(Long id, Long proprietaireId) {
+        Produit produit = charger(id, proprietaireId);
+        if (StatutProduit.ARCHIVE.equals(produit.getStatut())) {
+            throw new BusinessException(
+                    "Impossible d'activer un produit archivé. Désarchivez-le d'abord.");
+        }
+        if (StatutProduit.ACTIF.equals(produit.getStatut())) {
+            throw new BusinessException("Ce produit est déjà actif");
+        }
+        produit.setStatut(StatutProduit.ACTIF);
+        produit.setDateModification(LocalDateTime.now());
+        produitRepository.save(produit);
+        log.info("[PRODUIT] Activé — id={}", id);
+
+        activiteService.enregistrer(
+                TypeActivite.PRODUIT_ACTIVE,
+                "Produit activé",
+                produit.getNom(),
+                id, "PRODUIT", null, produit.getProprietaire());
+    }
+
+    @Override
+    public void desactiverProduit(Long id, Long proprietaireId) {
+        Produit produit = charger(id, proprietaireId);
+        if (StatutProduit.ARCHIVE.equals(produit.getStatut())) {
+            throw new BusinessException(
+                    "Impossible de désactiver un produit archivé.");
+        }
+        if (StatutProduit.INACTIF.equals(produit.getStatut())) {
+            throw new BusinessException("Ce produit est déjà inactif");
+        }
+        produit.setStatut(StatutProduit.INACTIF);
+        produit.setDateModification(LocalDateTime.now());
+        produitRepository.save(produit);
+        log.info("[PRODUIT] Désactivé — id={}", id);
+
+        activiteService.enregistrer(
+                TypeActivite.PRODUIT_DESACTIVE,
+                "Produit désactivé",
+                produit.getNom(),
+                id, "PRODUIT", null, produit.getProprietaire());
     }
 
     // ─────────────────────────────────────────────────────────────────────────
