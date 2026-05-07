@@ -99,6 +99,9 @@ public class SecurityConfig {
                         .requestMatchers("/admin/notifications/**")
                         .hasAuthority("ROLE_SUPER_ADMIN")
 
+                        .requestMatchers("/reunions/**")
+                        .hasAuthority("ROLE_PROPRIETAIRE")
+
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
@@ -126,13 +129,36 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * Configuration CORS — autorise toutes les origines de développement.
+     *
+     * Origines couvertes :
+     * - http://localhost:8081   → Expo Web (navigateur)
+     * - http://10.x.x.x:8081   → Expo Go sur réseau local
+     * - http://192.168.x.x:*   → Expo Go sur WiFi
+     *
+     * {@code allowedOriginPatterns("*")} couvre toutes les origines
+     * tout en autorisant {@code allowCredentials(true)}.
+     * En production, remplacer par l'URL exacte du domaine.
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+
+        // Wildcard pattern — compatible avec allowCredentials(true)
+        // Couvre localhost:8081 (Expo Web), 10.x.x.x (Expo Go), etc.
         config.setAllowedOriginPatterns(List.of("*"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+
+        config.setAllowedMethods(List.of(
+                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+
         config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
+
+        // Durée du cache preflight — réduit les requêtes OPTIONS
+        config.setMaxAge(3600L);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
