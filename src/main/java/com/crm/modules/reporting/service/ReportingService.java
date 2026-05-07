@@ -1,32 +1,32 @@
 package com.crm.modules.reporting.service;
 
-import com.crm.modules.client.entity.Client;
-import com.crm.modules.client.entity.ClientEntreprise;
-import com.crm.modules.client.entity.ClientIndividuel;
 import com.crm.modules.client.repository.ClientRepository;
+import com.crm.modules.reporting.dto.ActiviteResponse;
 import com.crm.modules.reporting.dto.ReportingKpisResponse;
 import com.crm.modules.reporting.dto.ReportingKpisResponse.ActiviteRecenteItem;
+import com.crm.modules.reporting.entity.Activite;
+import com.crm.modules.reporting.mapper.ActiviteMapper;
+import com.crm.modules.reporting.repository.ActiviteRepository;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
 import com.crm.modules.utilisateur.repository.ProprietaireRepository;
 import com.crm.shared.exception.ResourceNotFoundException;
+import com.crm.shared.response.PageResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.*;
 import java.util.List;
 
 /**
- * Service métier — Reporting.
- * Agrège les indicateurs de performance pour le tableau de bord mobile.
- *
- * Sprint 2 : nbClients réel, autres KPIs à 0 (câblés en Sprint 3).
- * Méthodes dérivées uniquement, aucun @Query.
+ * Implémentation du service de reporting.
  *
  * @author Riahi Dorsaf
+ * @see IReportingService
  */
 @Slf4j
 @Service
@@ -36,32 +36,42 @@ public class ReportingService implements IReportingService {
 
     private final ClientRepository       clientRepository;
     private final ProprietaireRepository proprietaireRepository;
+    private final ActiviteRepository     activiteRepository;
+    private final ActiviteMapper         activiteMapper;
+
+    // ─────────────────────────────────────────────────────────
+    //  KPIs
+    // ─────────────────────────────────────────────────────────
 
     @Override
-    public ReportingKpisResponse getKpis(String emailProprietaire) {
+    public ReportingKpisResponse getKpis(String emailProprietaire, String periode) {
 
-        ProprietaireEntreprise proprietaire = proprietaireRepository
-                .findByEmail(emailProprietaire)
-                .orElseThrow(() -> new ResourceNotFoundException("Propriétaire introuvable."));
-
+        ProprietaireEntreprise proprietaire = chargerProprietaire(emailProprietaire);
         long proprietaireId = proprietaire.getId();
 
-        // ── KPI réel Sprint 2 ─────────────────────────────────────────────
-        long nbClients = clientRepository
-                .countByProprietaireIdAndIsDeletedFalseAndStatut(proprietaireId, "ACTIF");
+        // Calcul de la date de début selon la période
+        LocalDateTime since = resolverPeriode(periode);
 
-        // ── Activité récente — 5 derniers clients créés ───────────────────
-        List<Client> recents = clientRepository
-                .findTop5ByProprietaireIdAndIsDeletedFalseOrderByDateCreationDesc(
-                        proprietaireId);
+        // nbClients filtré par période
+        long nbClients = (since == null)
+                ? clientRepository.countByProprietaireIdAndIsDeletedFalseAndStatut(
+                proprietaireId, "ACTIF")
+                : clientRepository.countByProprietaireIdAndIsDeletedFalseAndStatutAndDateCreationAfter(
+                proprietaireId, "ACTIF", since);
 
-        List<ActiviteRecenteItem> activite = recents.stream()
-                .map(c -> ActiviteRecenteItem.builder()
-                        .id(c.getId())
-                        .type("CLIENT")
-                        .titre(c.getNomAffichage())
-                        .soustitre(resolverTypeClient(c))
-                        .dateRelative(dateRelative(c.getDateCreation()))
+        // Activité récente — 10 dernières activités
+        List<Activite> activites = activiteRepository
+                .findTop10ByProprietaireIdOrderByDateCreationDesc(proprietaireId);
+
+        List<ActiviteRecenteItem> activiteRecente = activites.stream()
+                .map(a -> ActiviteRecenteItem.builder()
+                        .id(a.getEntiteId())
+                        .type(a.getEntiteType())
+                        .typeActivite(a.getType().name())
+                        .titre(a.getTitre())
+                        .soustitre(a.getDescription())
+                        .dateRelative(dateRelative(a.getDateCreation()))
+                        .entiteParentId(a.getEntiteParentId())
                         .build())
                 .toList();
 
@@ -71,22 +81,52 @@ public class ReportingService implements IReportingService {
                 .chiffreAffaires(BigDecimal.ZERO)
                 .nbDevis(0L)
                 .sparkline(List.of(0, 0, 0, 0, 0, 0, 0))
-                .activiteRecente(activite)
+                .activiteRecente(activiteRecente)
                 .build();
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    //  Helpers privés
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
+    //  LISTE ACTIVITÉS PAGINÉE
+    // ─────────────────────────────────────────────────────────
+
+    @Override
+    public PageResponse<ActiviteResponse> getActivites(String emailProprietaire,
+                                                       int page, int size) {
+        ProprietaireEntreprise proprietaire = chargerProprietaire(emailProprietaire);
+
+        Page<ActiviteResponse> result = activiteRepository
+                .findByProprietaireIdOrderByDateCreationDesc(
+                        proprietaire.getId(), PageRequest.of(page, size))
+                .map(a -> {
+                    ActiviteResponse response = activiteMapper.toResponse(a);
+                    response.setDateRelative(dateRelative(a.getDateCreation()));
+                    return response;
+                });
+
+        return PageResponse.from(result);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  HELPERS PRIVÉS
+    // ─────────────────────────────────────────────────────────
 
     /**
-     * Résout le libellé du type via instanceof.
-     * Le discriminateur JPA n'est pas exposé comme champ public sur Client.
+     * Résout la date de début de période.
+     * Retourne null si la période est inconnue (compte total).
      */
-    private String resolverTypeClient(Client client) {
-        if (client instanceof ClientIndividuel) return "Individuel";
-        if (client instanceof ClientEntreprise)  return "Entreprise";
-        return "Client";
+    private LocalDateTime resolverPeriode(String periode) {
+        if (periode == null) return null;
+        return switch (periode) {
+            case "AUJOURD_HUI" -> LocalDate.now().atStartOfDay();
+            case "CE_MOIS"     -> LocalDate.now().withDayOfMonth(1).atStartOfDay();
+            case "CETTE_ANNEE" -> LocalDate.now().withDayOfYear(1).atStartOfDay();
+            default            -> null;
+        };
+    }
+
+    private ProprietaireEntreprise chargerProprietaire(String email) {
+        return proprietaireRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Propriétaire introuvable."));
     }
 
     private String dateRelative(LocalDateTime date) {

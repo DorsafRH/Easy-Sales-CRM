@@ -7,9 +7,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * DTO de réponse pour les KPIs du module reporting.
- *
- * Sprint 2 : nbClients réel — autres KPIs à 0 (câblés en Sprint 3).
+ * DTO de réponse des KPIs du tableau de bord.
  *
  * @author Riahi Dorsaf
  */
@@ -17,36 +15,65 @@ import java.util.List;
 @Builder
 public class ReportingKpisResponse {
 
-    /** Nombre total de clients actifs — réel Sprint 2. */
-    private long nbClients;
+    /** Nombre de clients actifs sur la période sélectionnée. */
+    private Long nbClients;
 
-    /** Nombre d'opportunités en cours — 0 Sprint 2, réel Sprint 3. */
-    private long nbOpportunites;
+    /** Nombre d'opportunités — Sprint 3. */
+    private Long nbOpportunites;
 
-    /** Chiffre d'affaires du mois — 0.0 Sprint 2, réel Sprint 3. */
+    /** Chiffre d'affaires — Sprint 3. */
     private BigDecimal chiffreAffaires;
 
-    /** Nombre de devis en attente — 0 Sprint 2, réel Sprint 3. */
-    private long nbDevis;
+    /** Nombre de devis — Sprint 3. */
+    private Long nbDevis;
 
-    /**
-     * Données sparkline (7 derniers jours).
-     * Sprint 2 : [0, 0, 0, 0, 0, 0, 0].
-     */
+    /** Points du graphique sparkline — Sprint 3. */
     private List<Integer> sparkline;
 
-    /**
-     * Activité récente : 5 derniers clients créés.
-     */
+    /** 10 dernières activités pour la section "Activité récente". */
     private List<ActiviteRecenteItem> activiteRecente;
 
+    /**
+     * Élément d'activité récente affiché dans le Dashboard.
+     */
     @Data
     @Builder
     public static class ActiviteRecenteItem {
+
+        /** ID de l'entité concernée (clientId, contactId, produitId…). */
         private Long   id;
-        private String type;         // "CLIENT"
-        private String titre;        // nomAffichage du client
-        private String soustitre;    // "Individuel" | "Entreprise"
-        private String dateRelative; // "il y a 2 h"
+
+        /**
+         * Type de l'entité pour la navigation mobile.
+         * Valeurs : "CLIENT", "CONTACT", "PRODUIT".
+         */
+        private String type;
+
+        /**
+         * Type précis de l'activité pour l'icône mobile.
+         * Ex : "CLIENT_CREE", "CONTACT_AJOUTE", "PRODUIT_ARCHIVE".
+         */
+        private String typeActivite;
+
+        /**
+         * Label de l'action — titre principal de l'item.
+         * Ex : "Nouveau client ajouté", "Produit archivé".
+         */
+        private String titre;
+
+        /**
+         * Nom de l'entité concernée — sous-titre.
+         * Ex : "Ahmed Ben Ali", "Logiciel CRM Pro".
+         */
+        private String soustitre;
+
+        /** Date relative affichée (ex : "il y a 5 min"). */
+        private String dateRelative;
+
+        /**
+         * ID de l'entité parente — null si absent.
+         * Pour les contacts : clientId pour la navigation vers ContactDetail.
+         */
+        private Long   entiteParentId;
     }
 }
