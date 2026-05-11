@@ -9,6 +9,9 @@ import com.crm.modules.reporting.mapper.ActiviteMapper;
 import com.crm.modules.reporting.repository.ActiviteRepository;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
 import com.crm.modules.utilisateur.repository.ProprietaireRepository;
+import com.crm.modules.vente.repository.DevisRepository;
+import com.crm.modules.vente.repository.OpportuniteRepository;
+import com.crm.shared.enums.StatutDevis;
 import com.crm.shared.exception.ResourceNotFoundException;
 import com.crm.shared.response.PageResponse;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +27,7 @@ import java.util.List;
 
 /**
  * Implémentation du service de reporting.
+ * Sprint 3 : KPIs enrichis avec opportunités et devis réels.
  *
  * @author Riahi Dorsaf
  * @see IReportingService
@@ -38,6 +42,8 @@ public class ReportingService implements IReportingService {
     private final ProprietaireRepository proprietaireRepository;
     private final ActiviteRepository     activiteRepository;
     private final ActiviteMapper         activiteMapper;
+    private final OpportuniteRepository  opportuniteRepository;
+    private final DevisRepository        devisRepository;
 
     // ─────────────────────────────────────────────────────────
     //  KPIs
@@ -49,17 +55,19 @@ public class ReportingService implements IReportingService {
         ProprietaireEntreprise proprietaire = chargerProprietaire(emailProprietaire);
         long proprietaireId = proprietaire.getId();
 
-        // Calcul de la date de début selon la période
         LocalDateTime since = resolverPeriode(periode);
 
-        // nbClients filtré par période
         long nbClients = (since == null)
                 ? clientRepository.countByProprietaireIdAndIsDeletedFalseAndStatut(
                 proprietaireId, "ACTIF")
                 : clientRepository.countByProprietaireIdAndIsDeletedFalseAndStatutAndDateCreationAfter(
                 proprietaireId, "ACTIF", since);
 
-        // Activité récente — 10 dernières activités
+        long nbOpportunites = opportuniteRepository.countByProprietaireId(proprietaireId);
+
+        long nbDevis = devisRepository.countByProprietaireIdAndStatut(
+                proprietaireId, StatutDevis.ENVOYE);
+
         List<Activite> activites = activiteRepository
                 .findTop10ByProprietaireIdOrderByDateCreationDesc(proprietaireId);
 
@@ -77,9 +85,9 @@ public class ReportingService implements IReportingService {
 
         return ReportingKpisResponse.builder()
                 .nbClients(nbClients)
-                .nbOpportunites(0L)
+                .nbOpportunites(nbOpportunites)
                 .chiffreAffaires(BigDecimal.ZERO)
-                .nbDevis(0L)
+                .nbDevis(nbDevis)
                 .sparkline(List.of(0, 0, 0, 0, 0, 0, 0))
                 .activiteRecente(activiteRecente)
                 .build();
@@ -110,10 +118,6 @@ public class ReportingService implements IReportingService {
     //  HELPERS PRIVÉS
     // ─────────────────────────────────────────────────────────
 
-    /**
-     * Résout la date de début de période.
-     * Retourne null si la période est inconnue (compte total).
-     */
     private LocalDateTime resolverPeriode(String periode) {
         if (periode == null) return null;
         return switch (periode) {
@@ -133,7 +137,7 @@ public class ReportingService implements IReportingService {
         if (date == null) return "";
         Duration d = Duration.between(date, LocalDateTime.now());
         long minutes = d.toMinutes();
-        if (minutes < 1)  return "à l'instant";
+        if (minutes < 1)  return "a l instant";
         if (minutes < 60) return "il y a " + minutes + " min";
         long heures = d.toHours();
         if (heures < 24)  return "il y a " + heures + " h";

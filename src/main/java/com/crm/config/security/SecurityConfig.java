@@ -80,6 +80,23 @@ public class SecurityConfig {
                         .requestMatchers("/reporting/**")
                         .hasAuthority("ROLE_PROPRIETAIRE")
 
+                        // ── Propriétaire — Sprint 3 ───────────────────────
+                        .requestMatchers("/leads/**")
+                        .hasAuthority("ROLE_PROPRIETAIRE")
+
+                        .requestMatchers("/opportunites/**")
+                        .hasAuthority("ROLE_PROPRIETAIRE")
+
+                        .requestMatchers("/devis/**")
+                        .hasAuthority("ROLE_PROPRIETAIRE")
+
+                        .requestMatchers("/factures/**")
+                        .hasAuthority("ROLE_PROPRIETAIRE")
+
+                        .requestMatchers("/reunions/**")
+                        .hasAuthority("ROLE_PROPRIETAIRE")
+
+
                         // ── Super Admin ───────────────────────────────────
                         .requestMatchers(HttpMethod.GET, "/admin/entreprises/en-attente")
                         .hasAuthority("ROLE_SUPER_ADMIN")
@@ -98,9 +115,6 @@ public class SecurityConfig {
 
                         .requestMatchers("/admin/notifications/**")
                         .hasAuthority("ROLE_SUPER_ADMIN")
-
-                        .requestMatchers("/reunions/**")
-                        .hasAuthority("ROLE_PROPRIETAIRE")
 
                         .anyRequest().authenticated()
                 )
@@ -131,11 +145,6 @@ public class SecurityConfig {
 
     /**
      * Configuration CORS — autorise toutes les origines de développement.
-     *
-     * Origines couvertes :
-     * - http://localhost:8081   → Expo Web (navigateur)
-     * - http://10.x.x.x:8081   → Expo Go sur réseau local
-     * - http://192.168.x.x:*   → Expo Go sur WiFi
      *
      * {@code allowedOriginPatterns("*")} couvre toutes les origines
      * tout en autorisant {@code allowCredentials(true)}.

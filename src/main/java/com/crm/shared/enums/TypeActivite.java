@@ -2,7 +2,6 @@ package com.crm.shared.enums;
 
 /**
  * Types d'activité enregistrés dans le journal d'activité CRM.
- * Chaque valeur correspond à une action métier traçable.
  *
  * @author Riahi Dorsaf
  */
@@ -26,8 +25,32 @@ public enum TypeActivite {
     PRODUIT_ACTIVE,
     PRODUIT_DESACTIVE,
 
-    // ── Sprints futurs ───────────────────────────────────────
-    OPPORTUNITE_CREEE,    // Sprint 3
-    DEVIS_CREE,           // Sprint 3
-    PUBLICATION_CREEE,    // Sprint 4
+    // ── Sprint 3 — Leads ─────────────────────────────────────
+    LEAD_CREE,
+    LEAD_MODIFIE,
+    LEAD_QUALIFIE,
+    LEAD_CONVERTI,
+    LEAD_PERDU,
+
+    // ── Sprint 3 — Opportunités ───────────────────────────────
+    OPPORTUNITE_CREEE,
+    OPPORTUNITE_MODIFIEE,
+    OPPORTUNITE_STATUT_CHANGE,
+    OPPORTUNITE_GAGNEE,
+    OPPORTUNITE_PERDUE,
+
+    // ── Sprint 3 — Devis ──────────────────────────────────────
+    DEVIS_CREE,
+    DEVIS_ENVOYE,
+    DEVIS_ACCEPTE,
+    DEVIS_REFUSE,
+
+    // ── Sprint 3 — Factures ───────────────────────────────────
+    FACTURE_CREEE,
+    FACTURE_EMISE,
+    FACTURE_PAYEE,
+    FACTURE_ANNULEE,
+
+    // ── Sprint 4 ──────────────────────────────────────────────
+    PUBLICATION_CREEE,
 }
