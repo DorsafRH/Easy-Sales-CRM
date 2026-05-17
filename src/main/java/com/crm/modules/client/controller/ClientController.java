@@ -36,7 +36,7 @@ public class ClientController {
     public ResponseEntity<ApiResponse<PageResponse<ClientResponse>>> lister(
             @RequestParam(required = false) String typeClient,
             @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal ProprietaireEntreprise proprietaire) {
 

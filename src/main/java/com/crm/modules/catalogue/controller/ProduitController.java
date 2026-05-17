@@ -43,16 +43,16 @@ public class ProduitController {
     // ─────────────────────────────────────────────────────────
 
     @Operation(
-            summary     = "Lister les produits",
+            summary = "Lister les produits",
             description = "Filtres optionnels : type, statut, categorieId, keyword. "
                     + "Passer statut=ARCHIVE pour consulter les produits archivés."
     )
     @GetMapping
     public ResponseEntity<ApiResponse<List<ProduitResponse>>> lister(
-            @RequestParam(required = false) TypeProduit   type,
+            @RequestParam(required = false) TypeProduit type,
             @RequestParam(required = false) StatutProduit statut,
-            @RequestParam(required = false) Long          categorieId,
-            @RequestParam(required = false) String        keyword,
+            @RequestParam(required = false) Long categorieId,
+            @RequestParam(required = false) String keyword,
             @AuthenticationPrincipal ProprietaireEntreprise proprietaire) {
 
         return ResponseEntity.ok(ApiResponse.success(
@@ -109,7 +109,7 @@ public class ProduitController {
      * Consultable via {@code GET /produits?statut=ARCHIVE}.
      */
     @Operation(
-            summary     = "Archiver un produit",
+            summary = "Archiver un produit",
             description = "Passe le produit au statut ARCHIVE. "
                     + "Consultable via GET /produits?statut=ARCHIVE."
     )
@@ -128,7 +128,7 @@ public class ProduitController {
      * L'utilisateur peut ensuite l'activer via {@code PATCH /{id}/activer}.
      */
     @Operation(
-            summary     = "Désarchiver un produit",
+            summary = "Désarchiver un produit",
             description = "Passe le produit archivé au statut INACTIF. "
                     + "Activer ensuite via PATCH /{id}/activer."
     )
@@ -147,7 +147,7 @@ public class ProduitController {
      * Retourne 400 si le produit est archivé.
      */
     @Operation(
-            summary     = "Activer un produit",
+            summary = "Activer un produit",
             description = "Passe le produit INACTIF au statut ACTIF. "
                     + "Retourne 400 si le produit est archivé."
     )
@@ -166,7 +166,7 @@ public class ProduitController {
      * Retourne 400 si le produit est archivé.
      */
     @Operation(
-            summary     = "Désactiver un produit",
+            summary = "Désactiver un produit",
             description = "Passe le produit ACTIF au statut INACTIF. "
                     + "Retourne 400 si le produit est archivé."
     )

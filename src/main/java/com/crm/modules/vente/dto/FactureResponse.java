@@ -13,20 +13,20 @@ import java.util.List;
 @Data
 @Builder
 public class FactureResponse {
-    private Long            id;
-    private String          numero;
-    private StatutFacture   statut;
-    private BigDecimal      montantHt;
-    private BigDecimal      montantTva;
-    private BigDecimal      montantTtc;
-    private String          dateEcheance;
-    private String          dateEmission;
-    private String          datePaiement;
-    private String          notes;
-    private Long            clientId;
-    private String          clientNom;
-    private String          devisNumero;
+    private Long id;
+    private String numero;
+    private StatutFacture statut;
+    private BigDecimal montantHt;
+    private BigDecimal montantTva;
+    private BigDecimal montantTtc;
+    private String dateEcheance;
+    private String dateEmission;
+    private String datePaiement;
+    private String notes;
+    private Long clientId;
+    private String clientNom;
+    private String devisNumero;
     private List<LigneFactureResponse> lignes;
-    private String          dateCreation;
-    private String          dateRelative;
+    private String dateCreation;
+    private String dateRelative;
 }

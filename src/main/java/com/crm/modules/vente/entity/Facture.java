@@ -28,7 +28,7 @@ import java.util.List;
         name = "factures",
         indexes = {
                 @Index(name = "idx_facture_proprietaire", columnList = "proprietaire_id"),
-                @Index(name = "idx_facture_client",       columnList = "client_id"),
+                @Index(name = "idx_facture_client", columnList = "client_id"),
         }
 )
 public class Facture {
@@ -45,9 +45,9 @@ public class Facture {
     @Builder.Default
     private StatutFacture statut = StatutFacture.BROUILLON;
 
-    @Column(name = "montant_ht",  precision = 12, scale = 3)
+    @Column(name = "montant_ht", precision = 12, scale = 3)
     @Builder.Default
-    private BigDecimal montantHt  = BigDecimal.ZERO;
+    private BigDecimal montantHt = BigDecimal.ZERO;
 
     @Column(name = "montant_tva", precision = 12, scale = 3)
     @Builder.Default
@@ -65,8 +65,8 @@ public class Facture {
 
     // ── Lignes ────────────────────────────────────────────────
     @OneToMany(
-            mappedBy    = "facture",
-            cascade     = CascadeType.ALL,
+            mappedBy = "facture",
+            cascade = CascadeType.ALL,
             orphanRemoval = true
     )
     @Builder.Default
@@ -96,5 +96,7 @@ public class Facture {
     private LocalDateTime dateCreation;
 
     @PrePersist
-    protected void onCreate() { this.dateCreation = LocalDateTime.now(); }
+    protected void onCreate() {
+        this.dateCreation = LocalDateTime.now();
+    }
 }

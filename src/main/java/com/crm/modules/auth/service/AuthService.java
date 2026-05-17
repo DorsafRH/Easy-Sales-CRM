@@ -4,7 +4,6 @@ import com.crm.config.jwt.JwtService;
 import com.crm.modules.auth.dto.AuthResponse;
 import com.crm.modules.auth.dto.LoginRequest;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
-import com.crm.modules.utilisateur.entity.SuperAdmin;
 import com.crm.modules.utilisateur.entity.Utilisateur;
 import com.crm.modules.utilisateur.repository.UtilisateurRepository;
 import com.crm.shared.enums.StatutCompte;
@@ -60,7 +59,7 @@ public class AuthService implements IAuthService {
         utilisateur.setDerniereConnexion(LocalDateTime.now());
         utilisateurRepository.save(utilisateur);
 
-        String accessToken  = jwtService.generateToken(utilisateur);
+        String accessToken = jwtService.generateToken(utilisateur);
         String refreshToken = jwtService.generateRefreshToken(utilisateur);
 
         log.info("[AUTH] Connexion réussie — utilisateur : {} | rôle : {}",

@@ -14,9 +14,9 @@ import java.util.List;
 public interface IContactService {
 
     /**
-     * @param clientId        identifiant du client propriétaire des contacts
-     * @param proprietaireId  identifiant du propriétaire connecté (contrôle d'accès)
-     * @param keyword         recherche optionnelle sur nom, prénom, email, poste
+     * @param clientId       identifiant du client propriétaire des contacts
+     * @param proprietaireId identifiant du propriétaire connecté (contrôle d'accès)
+     * @param keyword        recherche optionnelle sur nom, prénom, email, poste
      */
     List<ContactResponse> lister(Long clientId, Long proprietaireId, String keyword);
 

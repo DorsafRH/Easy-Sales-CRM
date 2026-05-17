@@ -15,7 +15,9 @@ public interface IOpportuniteService {
 
     List<OpportuniteResponse> lister(Long proprietaireId, StatutOpportunite statut, String keyword);
 
-    /** Retourne les opportunités groupées par statut — pour le Kanban */
+    /**
+     * Retourne les opportunités groupées par statut — pour le Kanban
+     */
     Map<StatutOpportunite, List<OpportuniteResponse>> listerParStatut(Long proprietaireId);
 
     OpportuniteResponse obtenir(Long id, Long proprietaireId);
@@ -27,7 +29,9 @@ public interface IOpportuniteService {
     OpportuniteResponse changerStatut(Long id, StatutOpportunite nouveauStatut,
                                       String raisonPerte, Long proprietaireId);
 
-    /** Génère un devis brouillon depuis l'opportunité */
+    /**
+     * Génère un devis brouillon depuis l'opportunité
+     */
     DevisResponse genererDevis(Long opportuniteId, Long proprietaireId);
 
     void supprimer(Long id, Long proprietaireId);

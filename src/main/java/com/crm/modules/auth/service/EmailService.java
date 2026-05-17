@@ -35,10 +35,10 @@ public class EmailService {
             message.setSubject("✅ Votre compte CRM a été validé — " + nomEntreprise);
             message.setText(
                     "Bonjour,\n\n" +
-                    "Nous avons le plaisir de vous informer que votre compte entreprise \"" +
-                    nomEntreprise + "\" a été validé avec succès.\n\n" +
-                    "Vous pouvez dès maintenant vous connecter à l'application mobile CRM.\n\n" +
-                    "Cordialement,\nL'équipe CRM"
+                            "Nous avons le plaisir de vous informer que votre compte entreprise \"" +
+                            nomEntreprise + "\" a été validé avec succès.\n\n" +
+                            "Vous pouvez dès maintenant vous connecter à l'application mobile CRM.\n\n" +
+                            "Cordialement,\nL'équipe CRM"
             );
             mailSender.send(message);
             log.info("Email de validation envoyé à {}", destinataire);
@@ -60,11 +60,11 @@ public class EmailService {
             message.setSubject("❌ Votre demande de compte CRM — " + nomEntreprise);
             message.setText(
                     "Bonjour,\n\n" +
-                    "Nous vous informons que votre demande de création de compte pour l'entreprise \"" +
-                    nomEntreprise + "\" n'a pas pu être acceptée.\n\n" +
-                    "Motif : " + (motif != null ? motif : "Non précisé") + "\n\n" +
-                    "Pour toute question, veuillez nous contacter.\n\n" +
-                    "Cordialement,\nL'équipe CRM"
+                            "Nous vous informons que votre demande de création de compte pour l'entreprise \"" +
+                            nomEntreprise + "\" n'a pas pu être acceptée.\n\n" +
+                            "Motif : " + (motif != null ? motif : "Non précisé") + "\n\n" +
+                            "Pour toute question, veuillez nous contacter.\n\n" +
+                            "Cordialement,\nL'équipe CRM"
             );
             mailSender.send(message);
             log.info("Email de refus envoyé à {}", destinataire);
@@ -86,11 +86,11 @@ public class EmailService {
             message.setSubject("Bienvenue sur CRM — Votre demande est en cours d'examen");
             message.setText(
                     "Bonjour " + nomProprietaire + ",\n\n" +
-                    "Votre demande de création de compte pour l'entreprise \"" + nomEntreprise +
-                    "\" a bien été reçue.\n\n" +
-                    "Votre compte est actuellement en attente de validation par notre équipe.\n" +
-                    "Vous recevrez un email dès qu'une décision sera prise.\n\n" +
-                    "Cordialement,\nL'équipe CRM"
+                            "Votre demande de création de compte pour l'entreprise \"" + nomEntreprise +
+                            "\" a bien été reçue.\n\n" +
+                            "Votre compte est actuellement en attente de validation par notre équipe.\n" +
+                            "Vous recevrez un email dès qu'une décision sera prise.\n\n" +
+                            "Cordialement,\nL'équipe CRM"
             );
             mailSender.send(message);
             log.info("Email de bienvenue envoyé à {}", destinataire);

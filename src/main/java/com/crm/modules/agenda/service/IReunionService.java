@@ -82,7 +82,7 @@ public interface IReunionService {
      * @param request        nouvelles données
      * @param proprietaireId identifiant du propriétaire connecté
      * @return la réunion mise à jour
-     * @throws com.crm.shared.exception.BusinessException si la réunion n'est pas PLANIFIEE
+     * @throws com.crm.shared.exception.BusinessException         si la réunion n'est pas PLANIFIEE
      * @throws com.crm.shared.exception.ResourceNotFoundException si introuvable
      */
     ReunionResponse modifier(Long id, ReunionRequest request, Long proprietaireId);
@@ -92,7 +92,7 @@ public interface IReunionService {
      *
      * @param id             identifiant de la réunion
      * @param proprietaireId identifiant du propriétaire connecté
-     * @throws com.crm.shared.exception.BusinessException si déjà TERMINEE ou ANNULEE
+     * @throws com.crm.shared.exception.BusinessException         si déjà TERMINEE ou ANNULEE
      * @throws com.crm.shared.exception.ResourceNotFoundException si introuvable
      */
     void terminer(Long id, Long proprietaireId);
@@ -102,7 +102,7 @@ public interface IReunionService {
      *
      * @param id             identifiant de la réunion
      * @param proprietaireId identifiant du propriétaire connecté
-     * @throws com.crm.shared.exception.BusinessException si déjà ANNULEE ou TERMINEE
+     * @throws com.crm.shared.exception.BusinessException         si déjà ANNULEE ou TERMINEE
      * @throws com.crm.shared.exception.ResourceNotFoundException si introuvable
      */
     void annuler(Long id, Long proprietaireId);

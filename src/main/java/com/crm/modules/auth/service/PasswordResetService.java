@@ -28,10 +28,10 @@ public class PasswordResetService implements IPasswordResetService {
 
     private static final int EXPIRATION_MINUTES = 15;
 
-    private final UtilisateurRepository           utilisateurRepository;
-    private final PasswordResetTokenRepository    tokenRepository;
-    private final EmailService                    emailService;
-    private final PasswordEncoder                 passwordEncoder;
+    private final UtilisateurRepository utilisateurRepository;
+    private final PasswordResetTokenRepository tokenRepository;
+    private final EmailService emailService;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public void demanderReinitialisation(MotDePasseOublieRequest request) {

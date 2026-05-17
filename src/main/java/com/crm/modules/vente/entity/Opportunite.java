@@ -26,8 +26,8 @@ import java.time.LocalDateTime;
         name = "opportunites",
         indexes = {
                 @Index(name = "idx_opport_proprietaire", columnList = "proprietaire_id"),
-                @Index(name = "idx_opport_statut",       columnList = "statut"),
-                @Index(name = "idx_opport_client",        columnList = "client_id"),
+                @Index(name = "idx_opport_statut", columnList = "statut"),
+                @Index(name = "idx_opport_client", columnList = "client_id"),
         }
 )
 public class Opportunite {
@@ -64,7 +64,9 @@ public class Opportunite {
     @JoinColumn(name = "client_id", nullable = false)
     private Client client;
 
-    /** Lead à l'origine de cette opportunité — optionnel */
+    /**
+     * Lead à l'origine de cette opportunité — optionnel
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lead_id")
     private Lead lead;
@@ -81,8 +83,12 @@ public class Opportunite {
     private LocalDateTime dateModification;
 
     @PrePersist
-    protected void onCreate() { this.dateCreation = LocalDateTime.now(); }
+    protected void onCreate() {
+        this.dateCreation = LocalDateTime.now();
+    }
 
     @PreUpdate
-    protected void onUpdate() { this.dateModification = LocalDateTime.now(); }
+    protected void onUpdate() {
+        this.dateModification = LocalDateTime.now();
+    }
 }

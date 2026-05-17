@@ -13,20 +13,20 @@ import java.util.List;
 @Data
 @Builder
 public class DevisResponse {
-    private Long            id;
-    private String          numero;
-    private StatutDevis     statut;
-    private BigDecimal      montantHt;
-    private BigDecimal      montantTva;
-    private BigDecimal      montantTtc;
-    private String          notes;
-    private Integer         validiteJours;
-    private Long            clientId;
-    private String          clientNom;
-    private Long            opportuniteId;
-    private String          opportuniteTitre;
+    private Long id;
+    private String numero;
+    private StatutDevis statut;
+    private BigDecimal montantHt;
+    private BigDecimal montantTva;
+    private BigDecimal montantTtc;
+    private String notes;
+    private Integer validiteJours;
+    private Long clientId;
+    private String clientNom;
+    private Long opportuniteId;
+    private String opportuniteTitre;
     private List<LigneDevisResponse> lignes;
-    private String          dateCreation;
-    private String          dateModification;
-    private String          dateRelative;
+    private String dateCreation;
+    private String dateModification;
+    private String dateRelative;
 }

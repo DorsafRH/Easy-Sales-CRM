@@ -15,31 +15,35 @@ import java.util.List;
 @Builder
 public class ReunionResponse {
 
-    private Long          id;
-    private String        titre;
+    private Long id;
+    private String titre;
 
-    /** Date et heure ISO : "2026-05-10T14:00:00". */
-    private String        dateHeure;
-    private int           dureeMinutes;
-    private String        lieu;
-    private String        notes;
+    /**
+     * Date et heure ISO : "2026-05-10T14:00:00".
+     */
+    private String dateHeure;
+    private int dureeMinutes;
+    private String lieu;
+    private String notes;
     private StatutReunion statut;
 
-    /** Indique si la réunion se tient en ligne. */
-    private boolean       enLigne;
+    /**
+     * Indique si la réunion se tient en ligne.
+     */
+    private boolean enLigne;
 
     /**
      * Lien de la réunion (Jitsi, Google Meet, Teams…).
      * Null si réunion en présentiel.
      */
-    private String        lienReunion;
+    private String lienReunion;
 
     // ─────────────────────────────────────────────────────────
     //  Client
     // ─────────────────────────────────────────────────────────
 
-    private Long          clientId;
-    private String        clientNom;
+    private Long clientId;
+    private String clientNom;
 
     // ─────────────────────────────────────────────────────────
     //  Participants
@@ -55,16 +59,22 @@ public class ReunionResponse {
     //  Rappels
     // ─────────────────────────────────────────────────────────
 
-    /** Rappels en minutes avant la réunion. */
+    /**
+     * Rappels en minutes avant la réunion.
+     */
     private List<Integer> rappelsMinutes;
 
     // ─────────────────────────────────────────────────────────
     //  Dates
     // ─────────────────────────────────────────────────────────
 
-    /** Date relative (ex: "dans 2 h", "demain", "il y a 1 j"). */
-    private String        dateRelative;
+    /**
+     * Date relative (ex: "dans 2 h", "demain", "il y a 1 j").
+     */
+    private String dateRelative;
 
-    /** Date de création ISO. */
-    private String        dateCreation;
+    /**
+     * Date de création ISO.
+     */
+    private String dateCreation;
 }

@@ -16,7 +16,6 @@ import com.crm.modules.vente.repository.OpportuniteRepository;
 import com.crm.shared.enums.StatutDevis;
 import com.crm.shared.enums.StatutOpportunite;
 import com.crm.shared.enums.TypeActivite;
-import com.crm.shared.exception.BusinessException;
 import com.crm.shared.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +25,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.Year;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Riahi Dorsaf
@@ -38,13 +40,13 @@ import java.util.*;
 public class OpportuniteService implements IOpportuniteService {
 
     private final OpportuniteRepository opportuniteRepository;
-    private final LeadRepository        leadRepository;
-    private final ClientRepository      clientRepository;
-    private final DevisRepository       devisRepository;
+    private final LeadRepository leadRepository;
+    private final ClientRepository clientRepository;
+    private final DevisRepository devisRepository;
     private final ProprietaireRepository proprietaireRepository;
-    private final OpportuniteMapper     opportuniteMapper;
-    private final DevisMapper           devisMapper;
-    private final IActiviteService      activiteService;
+    private final OpportuniteMapper opportuniteMapper;
+    private final DevisMapper devisMapper;
+    private final IActiviteService activiteService;
 
     @Transactional(readOnly = true)
     @Override
@@ -151,7 +153,7 @@ public class OpportuniteService implements IOpportuniteService {
         TypeActivite type = switch (nouveauStatut) {
             case GAGNEE -> TypeActivite.OPPORTUNITE_GAGNEE;
             case PERDUE -> TypeActivite.OPPORTUNITE_PERDUE;
-            default     -> TypeActivite.OPPORTUNITE_STATUT_CHANGE;
+            default -> TypeActivite.OPPORTUNITE_STATUT_CHANGE;
         };
 
         activiteService.enregistrer(
@@ -201,7 +203,7 @@ public class OpportuniteService implements IOpportuniteService {
     }
 
     private String genererNumeroDevis(Long proprietaireId) {
-        String annee   = String.valueOf(Year.now().getValue());
+        String annee = String.valueOf(Year.now().getValue());
         String prefixe = "DV-" + annee + "-";
         return devisRepository
                 .findTopByProprietaireIdAndNumeroStartingWithOrderByNumeroDesc(proprietaireId, prefixe)
@@ -229,10 +231,10 @@ public class OpportuniteService implements IOpportuniteService {
         if (date == null) return "";
         Duration d = Duration.between(date, LocalDateTime.now());
         long min = d.toMinutes();
-        if (min < 1)  return "à l'instant";
+        if (min < 1) return "à l'instant";
         if (min < 60) return "il y a " + min + " min";
         long h = d.toHours();
-        if (h < 24)   return "il y a " + h + "h";
+        if (h < 24) return "il y a " + h + "h";
         return "il y a " + d.toDays() + "j";
     }
 }

@@ -13,19 +13,19 @@ import lombok.Data;
 @Builder
 public class ActiviteResponse {
 
-    private Long         id;
+    private Long id;
     private TypeActivite type;
-    private String       titre;
-    private String       description;
-    private Long         entiteId;
-    private String       entiteType;
+    private String titre;
+    private String description;
+    private Long entiteId;
+    private String entiteType;
 
     /**
      * ID de l'entité parente — optionnel.
      * Pour les contacts : contient le clientId pour la navigation mobile.
      */
-    private Long         entiteParentId;
+    private Long entiteParentId;
 
-    private String       dateRelative;
-    private String       dateCreation;
+    private String dateRelative;
+    private String dateCreation;
 }

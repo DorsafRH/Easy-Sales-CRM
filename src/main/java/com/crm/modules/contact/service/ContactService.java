@@ -40,14 +40,14 @@ import java.util.List;
 public class ContactService implements IContactService {
 
     private final ContactRepository contactRepository;
-    private final ClientRepository  clientRepository;
-    private final ContactMapper     contactMapper;
+    private final ClientRepository clientRepository;
+    private final ContactMapper contactMapper;
 
     /**
      * Injection via l'interface IActiviteService — pas l'implémentation concrète.
      * Bonne pratique SOLID D : dépendre d'une abstraction, pas d'une implémentation.
      */
-    private final IActiviteService  activiteService;
+    private final IActiviteService activiteService;
 
     // ─────────────────────────────────────────────────────────────────────────
     //  LISTE

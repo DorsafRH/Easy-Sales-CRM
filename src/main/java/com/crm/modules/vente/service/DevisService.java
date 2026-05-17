@@ -7,7 +7,10 @@ import com.crm.modules.utilisateur.repository.ProprietaireRepository;
 import com.crm.modules.vente.dto.DevisRequest;
 import com.crm.modules.vente.dto.DevisResponse;
 import com.crm.modules.vente.dto.FactureResponse;
-import com.crm.modules.vente.entity.*;
+import com.crm.modules.vente.entity.Devis;
+import com.crm.modules.vente.entity.Facture;
+import com.crm.modules.vente.entity.LigneDevis;
+import com.crm.modules.vente.entity.LigneFacture;
 import com.crm.modules.vente.mapper.DevisMapper;
 import com.crm.modules.vente.mapper.FactureMapper;
 import com.crm.modules.vente.repository.DevisRepository;
@@ -40,15 +43,15 @@ import java.util.List;
 @Transactional
 public class DevisService implements IDevisService {
 
-    private final DevisRepository        devisRepository;
-    private final FactureRepository      factureRepository;
-    private final ClientRepository       clientRepository;
-    private final OpportuniteRepository  opportuniteRepository;
-    private final ProduitRepository      produitRepository;
+    private final DevisRepository devisRepository;
+    private final FactureRepository factureRepository;
+    private final ClientRepository clientRepository;
+    private final OpportuniteRepository opportuniteRepository;
+    private final ProduitRepository produitRepository;
     private final ProprietaireRepository proprietaireRepository;
-    private final DevisMapper            devisMapper;
-    private final FactureMapper          factureMapper;
-    private final IActiviteService       activiteService;
+    private final DevisMapper devisMapper;
+    private final FactureMapper factureMapper;
+    private final IActiviteService activiteService;
 
     @Transactional(readOnly = true)
     @Override
@@ -133,10 +136,10 @@ public class DevisService implements IDevisService {
         devis = devisRepository.save(devis);
 
         TypeActivite type = switch (statut) {
-            case ENVOYE  -> TypeActivite.DEVIS_ENVOYE;
+            case ENVOYE -> TypeActivite.DEVIS_ENVOYE;
             case ACCEPTE -> TypeActivite.DEVIS_ACCEPTE;
-            case REFUSE  -> TypeActivite.DEVIS_REFUSE;
-            default      -> TypeActivite.DEVIS_CREE;
+            case REFUSE -> TypeActivite.DEVIS_REFUSE;
+            default -> TypeActivite.DEVIS_CREE;
         };
 
         activiteService.enregistrer(
@@ -237,8 +240,9 @@ public class DevisService implements IDevisService {
     private void validerTransitionDevis(StatutDevis actuel, StatutDevis nouveau) {
         boolean valide = switch (actuel) {
             case BROUILLON -> nouveau == StatutDevis.ENVOYE;
-            case ENVOYE    -> nouveau == StatutDevis.ACCEPTE || nouveau == StatutDevis.REFUSE || nouveau == StatutDevis.EXPIRE;
-            default        -> false;
+            case ENVOYE ->
+                    nouveau == StatutDevis.ACCEPTE || nouveau == StatutDevis.REFUSE || nouveau == StatutDevis.EXPIRE;
+            default -> false;
         };
         if (!valide) throw new BusinessException(
                 "Transition invalide : " + actuel + " → " + nouveau);
@@ -246,7 +250,7 @@ public class DevisService implements IDevisService {
 
     private String genererNumero(Long proprietaireId, String prefixe) {
         String annee = String.valueOf(Year.now().getValue());
-        String pref  = prefixe + "-" + annee + "-";
+        String pref = prefixe + "-" + annee + "-";
 
         if ("DV".equals(prefixe)) {
             return devisRepository

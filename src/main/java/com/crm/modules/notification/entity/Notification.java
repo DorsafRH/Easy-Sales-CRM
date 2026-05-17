@@ -40,7 +40,9 @@ public class Notification {
     @Column(name = "date_creation", nullable = false, updatable = false)
     private LocalDateTime dateCreation;
 
-    /** Lien optionnel vers la ressource concernée (ex: /admin/entreprises/42). */
+    /**
+     * Lien optionnel vers la ressource concernée (ex: /admin/entreprises/42).
+     */
     @Column(name = "lien_ressource")
     private String lienRessource;
 

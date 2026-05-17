@@ -30,7 +30,7 @@ import java.util.List;
  * @author Riahi Dorsaf
  */
 @Tag(
-        name        = "Agenda",
+        name = "Agenda",
         description = "Gestion des réunions client — planification, modification et suivi"
 )
 @RestController
@@ -41,12 +41,13 @@ public class ReunionController {
 
     private final IReunionService reunionService;
 
+
     // ─────────────────────────────────────────────────────────────────────────
     //  LISTE
     // ─────────────────────────────────────────────────────────────────────────
 
     @Operation(
-            summary     = "Lister toutes les réunions",
+            summary = "Lister toutes les réunions",
             description = "Retourne toutes les réunions du propriétaire connecté, "
                     + "triées par date croissante."
     )
@@ -64,7 +65,7 @@ public class ReunionController {
     // ─────────────────────────────────────────────────────────────────────────
 
     @Operation(
-            summary     = "Lister les réunions d'une semaine",
+            summary = "Lister les réunions d'une semaine",
             description = "Retourne les réunions entre deux dates. "
                     + "Utilisé pour l'écran Agenda hebdomadaire."
     )
@@ -72,7 +73,7 @@ public class ReunionController {
     public ResponseEntity<ApiResponse<List<ReunionResponse>>> listerSemaine(
             @Parameter(description = "Date de début (format : YYYY-MM-DD)", example = "2026-05-04")
             @RequestParam String debut,
-            @Parameter(description = "Date de fin (format : YYYY-MM-DD)",   example = "2026-05-10")
+            @Parameter(description = "Date de fin (format : YYYY-MM-DD)", example = "2026-05-10")
             @RequestParam String fin,
             @AuthenticationPrincipal ProprietaireEntreprise proprietaire) {
 
@@ -86,7 +87,7 @@ public class ReunionController {
     // ─────────────────────────────────────────────────────────────────────────
 
     @Operation(
-            summary     = "Lister les réunions d'un client",
+            summary = "Lister les réunions d'un client",
             description = "Retourne toutes les réunions associées à un client spécifique. "
                     + "Utilisé pour l'onglet Réunions de la fiche client."
     )
@@ -106,7 +107,7 @@ public class ReunionController {
     // ─────────────────────────────────────────────────────────────────────────
 
     @Operation(
-            summary     = "Obtenir le détail d'une réunion",
+            summary = "Obtenir le détail d'une réunion",
             description = "Retourne le détail complet d'une réunion par son identifiant."
     )
     @GetMapping("/{id}")
@@ -125,7 +126,7 @@ public class ReunionController {
     // ─────────────────────────────────────────────────────────────────────────
 
     @Operation(
-            summary     = "Créer une réunion",
+            summary = "Créer une réunion",
             description = "Planifie une nouvelle réunion avec un client. "
                     + "Le contact est optionnel. "
                     + "Les rappelsMinutes définissent les délais de notification "
@@ -148,7 +149,7 @@ public class ReunionController {
     // ─────────────────────────────────────────────────────────────────────────
 
     @Operation(
-            summary     = "Modifier une réunion",
+            summary = "Modifier une réunion",
             description = "Modifie une réunion existante. "
                     + "Seules les réunions au statut PLANIFIEE peuvent être modifiées."
     )
@@ -169,7 +170,7 @@ public class ReunionController {
     // ─────────────────────────────────────────────────────────────────────────
 
     @Operation(
-            summary     = "Marquer une réunion comme terminée",
+            summary = "Marquer une réunion comme terminée",
             description = "Passe le statut de la réunion à TERMINEE. "
                     + "Impossible si déjà TERMINEE ou ANNULEE."
     )
@@ -189,7 +190,7 @@ public class ReunionController {
     // ─────────────────────────────────────────────────────────────────────────
 
     @Operation(
-            summary     = "Annuler une réunion",
+            summary = "Annuler une réunion",
             description = "Passe le statut de la réunion à ANNULEE. "
                     + "Impossible si déjà ANNULEE ou TERMINEE."
     )
@@ -209,7 +210,7 @@ public class ReunionController {
     // ─────────────────────────────────────────────────────────────────────────
 
     @Operation(
-            summary     = "Supprimer une réunion",
+            summary = "Supprimer une réunion",
             description = "Supprime définitivement une réunion (suppression physique). "
                     + "Cette action est irréversible."
     )

@@ -38,15 +38,15 @@ import java.math.BigDecimal;
 @Transactional
 public class ClientService implements IClientService {
 
-    private final ClientRepository  clientRepository;
+    private final ClientRepository clientRepository;
     private final ContactRepository contactRepository;
-    private final ClientMapper      clientMapper;
+    private final ClientMapper clientMapper;
 
     /**
      * Injection via l'interface IActiviteService — pas l'implémentation concrète.
      * Bonne pratique SOLID D : dépendre d'une abstraction, pas d'une implémentation.
      */
-    private final IActiviteService  activiteService;
+    private final IActiviteService activiteService;
 
     // ─────────────────────────────────────────────────────────────────────────
     //  LISTE
@@ -202,7 +202,7 @@ public class ClientService implements IClientService {
 
     private void appliquer(ClientRequest req, Client client) {
         if (client instanceof ClientIndividuel c) {
-            if (req.getNom()    != null) c.setNom(req.getNom());
+            if (req.getNom() != null) c.setNom(req.getNom());
             if (req.getPrenom() != null) c.setPrenom(req.getPrenom());
         } else if (client instanceof ClientEntreprise c) {
             if (req.getRaisonSociale() != null) c.setRaisonSociale(req.getRaisonSociale());

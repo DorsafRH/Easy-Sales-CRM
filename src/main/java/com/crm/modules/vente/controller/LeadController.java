@@ -1,7 +1,9 @@
 package com.crm.modules.vente.controller;
 
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
-import com.crm.modules.vente.dto.*;
+import com.crm.modules.vente.dto.LeadRequest;
+import com.crm.modules.vente.dto.LeadResponse;
+import com.crm.modules.vente.dto.OpportuniteResponse;
 import com.crm.modules.vente.service.ILeadService;
 import com.crm.shared.enums.StatutLead;
 import com.crm.shared.response.ApiResponse;

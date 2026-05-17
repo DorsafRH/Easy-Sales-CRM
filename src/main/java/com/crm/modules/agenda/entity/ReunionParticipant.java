@@ -30,19 +30,27 @@ import lombok.*;
 @AllArgsConstructor
 public class ReunionParticipant {
 
-    /** Nom du participant — obligatoire. */
+    /**
+     * Nom du participant — obligatoire.
+     */
     @Column(name = "participant_nom", nullable = false, length = 100)
     private String nom;
 
-    /** Prénom du participant — optionnel. */
+    /**
+     * Prénom du participant — optionnel.
+     */
     @Column(name = "participant_prenom", length = 100)
     private String prenom;
 
-    /** Email du participant — utilisé pour l'invitation. */
+    /**
+     * Email du participant — utilisé pour l'invitation.
+     */
     @Column(name = "participant_email", length = 200)
     private String email;
 
-    /** Téléphone — utilisé pour l'envoi WhatsApp. */
+    /**
+     * Téléphone — utilisé pour l'envoi WhatsApp.
+     */
     @Column(name = "participant_telephone", length = 20)
     private String telephone;
 

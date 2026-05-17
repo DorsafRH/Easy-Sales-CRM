@@ -11,7 +11,8 @@ import org.springframework.data.jpa.domain.Specification;
  */
 public class ClientSpecification {
 
-    private ClientSpecification() {}
+    private ClientSpecification() {
+    }
 
     /**
      * Filtre les clients non supprimés d'un propriétaire.
@@ -44,7 +45,7 @@ public class ClientSpecification {
             String pattern = "%" + keyword.toLowerCase() + "%";
             return cb.or(
                     cb.like(cb.lower(root.get("nomAffichage")), pattern),
-                    cb.like(cb.lower(root.get("email")),        pattern)
+                    cb.like(cb.lower(root.get("email")), pattern)
             );
         };
     }

@@ -17,8 +17,8 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface ContactMapper {
 
-    @Mapping(target = "nomComplet",         expression = "java(contact.getNomComplet())")
-    @Mapping(target = "clientId",           source = "client.id")
+    @Mapping(target = "nomComplet", expression = "java(contact.getNomComplet())")
+    @Mapping(target = "clientId", source = "client.id")
     @Mapping(target = "clientNomAffichage", source = "client.nomAffichage")
     ContactResponse toResponse(Contact contact);
 }

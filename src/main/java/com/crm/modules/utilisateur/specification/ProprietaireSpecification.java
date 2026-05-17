@@ -14,8 +14,11 @@ import org.springframework.data.jpa.domain.Specification;
  */
 public class ProprietaireSpecification {
 
-    /** Constructeur privé : classe utilitaire non instanciable. */
-    private ProprietaireSpecification() {}
+    /**
+     * Constructeur privé : classe utilitaire non instanciable.
+     */
+    private ProprietaireSpecification() {
+    }
 
     /**
      * Filtre les propriétaires liés à un {@code EntrepriseCompte} donné.

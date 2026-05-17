@@ -44,7 +44,9 @@ public interface ProduitRepository
      */
     int countByCategorieIdAndStatut(Long categorieId, StatutProduit statut);
 
-    /** Compte les produits d'un propriétaire selon leur statut. */
+    /**
+     * Compte les produits d'un propriétaire selon leur statut.
+     */
     long countByProprietaireIdAndStatut(Long proprietaireId, StatutProduit statut);
 
     /**

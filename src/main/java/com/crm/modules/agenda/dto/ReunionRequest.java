@@ -20,12 +20,16 @@ public class ReunionRequest {
     //  Champs obligatoires
     // ─────────────────────────────────────────────────────────
 
-    /** Titre de la réunion. */
+    /**
+     * Titre de la réunion.
+     */
     @NotBlank(message = "Le titre est obligatoire")
     @Size(max = 200, message = "Le titre ne doit pas dépasser 200 caractères")
     private String titre;
 
-    /** Date et heure de début. */
+    /**
+     * Date et heure de début.
+     */
     @NotNull(message = "La date et l'heure sont obligatoires")
     private LocalDateTime dateHeure;
 
@@ -34,11 +38,13 @@ public class ReunionRequest {
      * Entre 15 min et 480 min (8 heures).
      */
     @NotNull(message = "La durée est obligatoire")
-    @Min(value = 15,  message = "La durée minimale est de 15 minutes")
+    @Min(value = 15, message = "La durée minimale est de 15 minutes")
     @Max(value = 480, message = "La durée maximale est de 8 heures")
     private Integer dureeMinutes;
 
-    /** Identifiant du client principal. */
+    /**
+     * Identifiant du client principal.
+     */
     @NotNull(message = "Le client est obligatoire")
     private Long clientId;
 
@@ -46,11 +52,15 @@ public class ReunionRequest {
     //  Champs optionnels
     // ─────────────────────────────────────────────────────────
 
-    /** Lieu physique de la réunion. */
+    /**
+     * Lieu physique de la réunion.
+     */
     @Size(max = 200)
     private String lieu;
 
-    /** Notes libres. */
+    /**
+     * Notes libres.
+     */
     private String notes;
 
     /**

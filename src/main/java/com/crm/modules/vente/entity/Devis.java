@@ -27,8 +27,8 @@ import java.util.List;
         name = "devis",
         indexes = {
                 @Index(name = "idx_devis_proprietaire", columnList = "proprietaire_id"),
-                @Index(name = "idx_devis_client",       columnList = "client_id"),
-                @Index(name = "idx_devis_statut",       columnList = "statut"),
+                @Index(name = "idx_devis_client", columnList = "client_id"),
+                @Index(name = "idx_devis_statut", columnList = "statut"),
         }
 )
 public class Devis {
@@ -66,10 +66,10 @@ public class Devis {
 
     // ── Lignes ────────────────────────────────────────────────
     @OneToMany(
-            mappedBy    = "devis",
-            cascade     = CascadeType.ALL,
+            mappedBy = "devis",
+            cascade = CascadeType.ALL,
             orphanRemoval = true,
-            fetch       = FetchType.LAZY
+            fetch = FetchType.LAZY
     )
     @Builder.Default
     private List<LigneDevis> lignes = new ArrayList<>();
@@ -95,20 +95,24 @@ public class Devis {
     private LocalDateTime dateModification;
 
     @PrePersist
-    protected void onCreate() { this.dateCreation = LocalDateTime.now(); }
+    protected void onCreate() {
+        this.dateCreation = LocalDateTime.now();
+    }
 
     @PreUpdate
-    protected void onUpdate() { this.dateModification = LocalDateTime.now(); }
+    protected void onUpdate() {
+        this.dateModification = LocalDateTime.now();
+    }
 
     // ── Helper ────────────────────────────────────────────────
     public void recalculerTotaux() {
-        BigDecimal ht  = BigDecimal.ZERO;
+        BigDecimal ht = BigDecimal.ZERO;
         BigDecimal tva = BigDecimal.ZERO;
         for (LigneDevis l : lignes) {
-            ht  = ht.add(l.getMontantHt());
+            ht = ht.add(l.getMontantHt());
             tva = tva.add(l.getMontantTva());
         }
-        this.montantHt  = ht;
+        this.montantHt = ht;
         this.montantTva = tva;
         this.montantTtc = ht.add(tva);
     }

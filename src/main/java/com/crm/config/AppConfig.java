@@ -1,10 +1,9 @@
 package com.crm.config;
 
+import com.crm.config.jwt.JwtProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
-
-import com.crm.config.jwt.JwtProperties;
 
 /**
  * Configuration globale de l'application.

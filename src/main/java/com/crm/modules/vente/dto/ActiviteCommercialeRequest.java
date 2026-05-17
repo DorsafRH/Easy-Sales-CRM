@@ -25,7 +25,9 @@ public class ActiviteCommercialeRequest {
     private Integer dureeMinutes;
     private LocalDateTime dateActivite;
 
-    /** L'activité porte sur un Lead OU une Opportunité */
+    /**
+     * L'activité porte sur un Lead OU une Opportunité
+     */
     private Long leadId;
     private Long opportuniteId;
 }

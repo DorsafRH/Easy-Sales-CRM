@@ -22,7 +22,9 @@ public interface IDevisService {
 
     DevisResponse changerStatut(Long id, StatutDevis statut, Long proprietaireId);
 
-    /** Convertit un devis ACCEPTE en facture */
+    /**
+     * Convertit un devis ACCEPTE en facture
+     */
     FactureResponse convertirEnFacture(Long id, Long proprietaireId);
 
     void supprimer(Long id, Long proprietaireId);

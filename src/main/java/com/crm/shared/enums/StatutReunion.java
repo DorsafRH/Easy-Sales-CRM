@@ -13,12 +13,18 @@ package com.crm.shared.enums;
  */
 public enum StatutReunion {
 
-    /** Réunion planifiée — en attente. */
+    /**
+     * Réunion planifiée — en attente.
+     */
     PLANIFIEE,
 
-    /** Réunion tenue avec succès. */
+    /**
+     * Réunion tenue avec succès.
+     */
     TERMINEE,
 
-    /** Réunion annulée avant sa tenue. */
+    /**
+     * Réunion annulée avant sa tenue.
+     */
     ANNULEE,
 }

@@ -55,23 +55,33 @@ public class Reunion {
     //  Informations de base
     // ─────────────────────────────────────────────────────────
 
-    /** Titre de la réunion (ex: "Présentation offre commerciale"). */
+    /**
+     * Titre de la réunion (ex: "Présentation offre commerciale").
+     */
     @Column(name = "titre", nullable = false, length = 200)
     private String titre;
 
-    /** Date et heure de début de la réunion. */
+    /**
+     * Date et heure de début de la réunion.
+     */
     @Column(name = "date_heure", nullable = false)
     private LocalDateTime dateHeure;
 
-    /** Durée de la réunion en minutes. */
+    /**
+     * Durée de la réunion en minutes.
+     */
     @Column(name = "duree_minutes", nullable = false)
     private int dureeMinutes;
 
-    /** Lieu physique — optionnel (ex: "Bureau client", "Siège social"). */
+    /**
+     * Lieu physique — optionnel (ex: "Bureau client", "Siège social").
+     */
     @Column(name = "lieu", length = 200)
     private String lieu;
 
-    /** Notes libres sur la réunion. */
+    /**
+     * Notes libres sur la réunion.
+     */
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
@@ -131,7 +141,7 @@ public class Reunion {
      */
     @ElementCollection
     @CollectionTable(
-            name        = "reunion_participants",
+            name = "reunion_participants",
             joinColumns = @JoinColumn(name = "reunion_id")
     )
     @Builder.Default
@@ -150,7 +160,7 @@ public class Reunion {
      */
     @ElementCollection
     @CollectionTable(
-            name        = "reunion_rappels",
+            name = "reunion_rappels",
             joinColumns = @JoinColumn(name = "reunion_id")
     )
     @Column(name = "minutes_avant")
@@ -169,7 +179,9 @@ public class Reunion {
     @JoinColumn(name = "client_id", nullable = false)
     private Client client;
 
-    /** Propriétaire connecté — cloisonnement multi-tenant. */
+    /**
+     * Propriétaire connecté — cloisonnement multi-tenant.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "proprietaire_id", nullable = false)
     private ProprietaireEntreprise proprietaire;

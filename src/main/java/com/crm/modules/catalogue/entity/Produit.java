@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 /**
  * Produit ou service du catalogue CRM.
  * Code auto-généré côté service : PRD-YYYY-NNNN.
+ * stockMinimum : seuil d'alerte pour les produits STOCKABLE.
  *
  * @author Riahi Dorsaf
  */
@@ -54,6 +55,14 @@ public class Produit {
     /** Null pour les services. Valorisé uniquement pour STOCKABLE. */
     @Column(name = "stock_disponible")
     private Integer stockDisponible;
+
+    /**
+     * Seuil d'alerte de stock.
+     * Null pour les services.
+     * Déclenche une alerte dashboard quand stockDisponible <= stockMinimum.
+     */
+    @Column(name = "stock_minimum")
+    private Integer stockMinimum;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "statut", nullable = false)

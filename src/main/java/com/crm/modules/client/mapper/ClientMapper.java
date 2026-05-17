@@ -9,7 +9,7 @@ import org.mapstruct.Mapping;
 
 /**
  * MapStruct mapper : Client → ClientResponse.
- *
+ * <p>
  * Les champs calculés (nbContacts, chiffreAffaires) sont ignorés ici
  * et valorisés manuellement dans le service après le mapping.
  *
@@ -20,18 +20,18 @@ public interface ClientMapper {
 
     // ── ClientIndividuel ──────────────────────────────────────────────────────
 
-    @Mapping(target = "typeClient",      constant = "INDIVIDUEL")
-    @Mapping(target = "raisonSociale",   ignore = true)
-    @Mapping(target = "nbContacts",      ignore = true)
+    @Mapping(target = "typeClient", constant = "INDIVIDUEL")
+    @Mapping(target = "raisonSociale", ignore = true)
+    @Mapping(target = "nbContacts", ignore = true)
     @Mapping(target = "chiffreAffaires", ignore = true)
     ClientResponse toResponse(ClientIndividuel client);
 
     // ── ClientEntreprise ──────────────────────────────────────────────────────
 
-    @Mapping(target = "typeClient",      constant = "ENTREPRISE")
-    @Mapping(target = "nom",             ignore = true)
-    @Mapping(target = "prenom",          ignore = true)
-    @Mapping(target = "nbContacts",      ignore = true)
+    @Mapping(target = "typeClient", constant = "ENTREPRISE")
+    @Mapping(target = "nom", ignore = true)
+    @Mapping(target = "prenom", ignore = true)
+    @Mapping(target = "nbContacts", ignore = true)
     @Mapping(target = "chiffreAffaires", ignore = true)
     ClientResponse toResponse(ClientEntreprise client);
 

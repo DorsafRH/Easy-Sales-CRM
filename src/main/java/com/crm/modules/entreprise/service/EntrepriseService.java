@@ -1,10 +1,13 @@
 package com.crm.modules.entreprise.service;
 
-import com.crm.modules.entreprise.specification.EntrepriseCompteSpecification;
 import com.crm.modules.auth.service.EmailService;
-import com.crm.modules.entreprise.dto.*;
+import com.crm.modules.entreprise.dto.EntrepriseCompteResponse;
+import com.crm.modules.entreprise.dto.EntrepriseMapper;
+import com.crm.modules.entreprise.dto.InscriptionEntrepriseRequest;
+import com.crm.modules.entreprise.dto.ValiderEntrepriseRequest;
 import com.crm.modules.entreprise.entity.EntrepriseCompte;
 import com.crm.modules.entreprise.repository.EntrepriseCompteRepository;
+import com.crm.modules.entreprise.specification.EntrepriseCompteSpecification;
 import com.crm.modules.notification.entity.TypeNotification;
 import com.crm.modules.notification.service.NotificationService;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
@@ -39,12 +42,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class EntrepriseService implements IEntrepriseService {
 
     private final EntrepriseCompteRepository entrepriseRepository;
-    private final ProprietaireRepository     proprietaireRepository;
-    private final SuperAdminRepository       superAdminRepository;
-    private final UtilisateurRepository      utilisateurRepository;
-    private final EntrepriseMapper           mapper;
-    private final PasswordEncoder            passwordEncoder;
-    private final EmailService               emailService;
+    private final ProprietaireRepository proprietaireRepository;
+    private final SuperAdminRepository superAdminRepository;
+    private final UtilisateurRepository utilisateurRepository;
+    private final EntrepriseMapper mapper;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
     private final NotificationService notificationService;
 
     // ── Inscription ───────────────────────────────────────────────────────────

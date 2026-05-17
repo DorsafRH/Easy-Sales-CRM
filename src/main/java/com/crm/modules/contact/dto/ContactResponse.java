@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Data
 public class ContactResponse {
 
-    private Long   id;
+    private Long id;
     private String nom;
     private String prenom;
     private String nomComplet;
@@ -22,6 +22,6 @@ public class ContactResponse {
     private boolean isPrincipal;
     private LocalDateTime dateCreation;
 
-    private Long   clientId;
+    private Long clientId;
     private String clientNomAffichage;
 }

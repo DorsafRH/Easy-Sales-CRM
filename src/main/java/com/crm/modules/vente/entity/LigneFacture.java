@@ -49,7 +49,7 @@ public class LigneFacture {
     @Builder.Default
     private BigDecimal remise = BigDecimal.ZERO;
 
-    @Column(name = "montant_ht",  precision = 12, scale = 3)
+    @Column(name = "montant_ht", precision = 12, scale = 3)
     private BigDecimal montantHt;
 
     @Column(name = "montant_tva", precision = 12, scale = 3)

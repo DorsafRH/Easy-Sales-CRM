@@ -4,7 +4,6 @@ import com.crm.modules.entreprise.entity.EntrepriseCompte;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.Named;
 
 /**
  * MapStruct mapper pour EntrepriseCompte ↔ EntrepriseCompteResponse.

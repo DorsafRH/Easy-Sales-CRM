@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ProprietaireService {
 
     private final ProprietaireRepository proprietaireRepository;
-    private final NotificationService    notificationService;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public ProfilProprietaireResponse consulterProfil(String email) {

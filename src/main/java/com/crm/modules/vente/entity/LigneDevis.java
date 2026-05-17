@@ -33,7 +33,9 @@ public class LigneDevis {
     @JoinColumn(name = "produit_id", nullable = false)
     private Produit produit;
 
-    /** Désignation libre (peut différer du nom produit) */
+    /**
+     * Désignation libre (peut différer du nom produit)
+     */
     @Column(name = "designation", nullable = false, length = 200)
     private String designation;
 
@@ -48,7 +50,9 @@ public class LigneDevis {
     @Builder.Default
     private BigDecimal tauxTva = BigDecimal.ZERO;
 
-    /** Remise en % (0-100) */
+    /**
+     * Remise en % (0-100)
+     */
     @Column(name = "remise", precision = 5, scale = 2)
     @Builder.Default
     private BigDecimal remise = BigDecimal.ZERO;

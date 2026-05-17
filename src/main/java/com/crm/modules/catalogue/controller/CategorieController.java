@@ -41,7 +41,7 @@ public class CategorieController {
     // ─────────────────────────────────────────────────────────
 
     @Operation(
-            summary     = "Lister les catégories",
+            summary = "Lister les catégories",
             description = "Paramètre optionnel : keyword (nom, description)"
     )
     @GetMapping
@@ -107,7 +107,7 @@ public class CategorieController {
      * PUT serait incorrect car on ne remplace pas la ressource entière.</p>
      */
     @Operation(
-            summary     = "Désactiver les produits d'une catégorie",
+            summary = "Désactiver les produits d'une catégorie",
             description = "Passe tous les produits ACTIF de la catégorie au statut INACTIF. "
                     + "À appeler avant la suppression de la catégorie."
     )
@@ -129,7 +129,7 @@ public class CategorieController {
      * sans catégorie.</p>
      */
     @Operation(
-            summary     = "Retirer la catégorie des produits",
+            summary = "Retirer la catégorie des produits",
             description = "Détache tous les produits de la catégorie (categorieId → null). "
                     + "Les produits restent actifs. À appeler avant la suppression."
     )
@@ -155,7 +155,7 @@ public class CategorieController {
      * ou {@code PATCH /{id}/retirer-categorie}.</p>
      */
     @Operation(
-            summary     = "Supprimer une catégorie",
+            summary = "Supprimer une catégorie",
             description = "Supprime la catégorie si elle ne contient plus de produits actifs. "
                     + "Retourne 400 sinon."
     )

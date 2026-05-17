@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Data
 public class ClientResponse {
 
-    private Long   id;
+    private Long id;
     private String typeClient;      // INDIVIDUEL | ENTREPRISE
     private String nomAffichage;
     private String email;
@@ -34,6 +34,6 @@ public class ClientResponse {
     private String raisonSociale;
 
     // Calculés par le service (non mappés par MapStruct)
-    private int        nbContacts;
+    private int nbContacts;
     private BigDecimal chiffreAffaires; // 0.0 Sprint 2, réel Sprint 3
 }

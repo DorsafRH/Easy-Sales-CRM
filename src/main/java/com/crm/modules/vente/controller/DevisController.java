@@ -1,7 +1,9 @@
 package com.crm.modules.vente.controller;
 
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
-import com.crm.modules.vente.dto.*;
+import com.crm.modules.vente.dto.DevisRequest;
+import com.crm.modules.vente.dto.DevisResponse;
+import com.crm.modules.vente.dto.FactureResponse;
 import com.crm.modules.vente.service.IDevisService;
 import com.crm.shared.enums.StatutDevis;
 import com.crm.shared.response.ApiResponse;

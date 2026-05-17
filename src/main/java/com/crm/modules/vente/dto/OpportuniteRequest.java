@@ -32,6 +32,8 @@ public class OpportuniteRequest {
     @NotNull(message = "Le client est obligatoire")
     private Long clientId;
 
-    /** Lead source optionnel */
+    /**
+     * Lead source optionnel
+     */
     private Long leadId;
 }

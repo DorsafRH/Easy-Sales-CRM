@@ -20,7 +20,7 @@ public interface IAuthService {
      * @param request les credentials de connexion (e-mail et mot de passe)
      * @return la réponse contenant les tokens JWT et les données de l'utilisateur
      * @throws com.crm.shared.exception.BusinessException si les credentials sont invalides
-     *         ou si le compte n'est pas autorisé à se connecter
+     *                                                    ou si le compte n'est pas autorisé à se connecter
      */
     AuthResponse login(LoginRequest request);
 }

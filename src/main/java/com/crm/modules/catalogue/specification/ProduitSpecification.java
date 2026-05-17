@@ -12,9 +12,12 @@ import org.springframework.data.jpa.domain.Specification;
  */
 public class ProduitSpecification {
 
-    private ProduitSpecification() {}
+    private ProduitSpecification() {
+    }
 
-    /** Filtre les produits appartenant à un propriétaire donné. */
+    /**
+     * Filtre les produits appartenant à un propriétaire donné.
+     */
     public static Specification<Produit> duProprietaire(Long proprietaireId) {
         return (root, query, cb) ->
                 cb.equal(root.get("proprietaire").get("id"), proprietaireId);
@@ -58,7 +61,7 @@ public class ProduitSpecification {
             if (keyword == null || keyword.isBlank()) return cb.conjunction();
             String pattern = "%" + keyword.toLowerCase() + "%";
             return cb.or(
-                    cb.like(cb.lower(root.get("nom")),         pattern),
+                    cb.like(cb.lower(root.get("nom")), pattern),
                     cb.like(cb.lower(root.get("description")), pattern)
             );
         };

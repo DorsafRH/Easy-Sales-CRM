@@ -3,7 +3,10 @@ package com.crm.modules.reporting.entity;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
 import com.crm.shared.enums.TypeActivite;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -39,19 +42,27 @@ public class Activite {
     @Column(nullable = false, length = 50)
     private TypeActivite type;
 
-    /** Titre principal affiché dans l'UI (nom du client, du produit…). */
+    /**
+     * Titre principal affiché dans l'UI (nom du client, du produit…).
+     */
     @Column(nullable = false, length = 200)
     private String titre;
 
-    /** Description de l'action (ex: "Nouveau client ajouté"). */
+    /**
+     * Description de l'action (ex: "Nouveau client ajouté").
+     */
     @Column(nullable = false, length = 200)
     private String description;
 
-    /** ID de l'entité concernée (clientId, contactId, produitId…). */
+    /**
+     * ID de l'entité concernée (clientId, contactId, produitId…).
+     */
     @Column(nullable = false)
     private Long entiteId;
 
-    /** Type de l'entité ("CLIENT", "CONTACT", "PRODUIT"). */
+    /**
+     * Type de l'entité ("CLIENT", "CONTACT", "PRODUIT").
+     */
     @Column(nullable = false, length = 50)
     private String entiteType;
 

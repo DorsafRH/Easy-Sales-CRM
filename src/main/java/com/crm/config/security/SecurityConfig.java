@@ -35,9 +35,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final CustomUserDetailsService userDetailsService;
-    private final JwtAuthFilter            jwtAuthFilter;
-
     private static final String[] PUBLIC_ENDPOINTS = {
             "/auth/**",
             "/v3/api-docs",
@@ -50,7 +47,12 @@ public class SecurityConfig {
             "/webjars/**",
             "/entreprises/inscription"
     };
+    private final CustomUserDetailsService userDetailsService;
+    private final JwtAuthFilter jwtAuthFilter;
 
+    /*
+    todo  :   supprimer les commentaires  ,ajouter java doc au methodes
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -145,7 +147,7 @@ public class SecurityConfig {
 
     /**
      * Configuration CORS — autorise toutes les origines de développement.
-     *
+     * <p>
      * {@code allowedOriginPatterns("*")} couvre toutes les origines
      * tout en autorisant {@code allowCredentials(true)}.
      * En production, remplacer par l'URL exacte du domaine.

@@ -17,20 +17,28 @@ import lombok.Data;
 @Builder
 public class ReunionParticipantDto {
 
-    /** Nom du participant — obligatoire. */
+    /**
+     * Nom du participant — obligatoire.
+     */
     @NotBlank(message = "Le nom du participant est obligatoire")
     @Size(max = 100)
     private String nom;
 
-    /** Prénom du participant — optionnel. */
+    /**
+     * Prénom du participant — optionnel.
+     */
     @Size(max = 100)
     private String prenom;
 
-    /** Email — utilisé pour l'envoi de l'invitation. */
+    /**
+     * Email — utilisé pour l'envoi de l'invitation.
+     */
     @Size(max = 200)
     private String email;
 
-    /** Téléphone — utilisé pour l'envoi WhatsApp. */
+    /**
+     * Téléphone — utilisé pour l'envoi WhatsApp.
+     */
     @Size(max = 20)
     private String telephone;
 

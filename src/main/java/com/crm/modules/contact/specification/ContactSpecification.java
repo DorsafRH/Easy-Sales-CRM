@@ -10,9 +10,12 @@ import org.springframework.data.jpa.domain.Specification;
  */
 public class ContactSpecification {
 
-    private ContactSpecification() {}
+    private ContactSpecification() {
+    }
 
-    /** Filtre les contacts appartenant à un client donné. */
+    /**
+     * Filtre les contacts appartenant à un client donné.
+     */
     public static Specification<Contact> duClient(Long clientId) {
         return (root, query, cb) ->
                 cb.equal(root.get("client").get("id"), clientId);
@@ -28,10 +31,10 @@ public class ContactSpecification {
             if (keyword == null || keyword.isBlank()) return cb.conjunction();
             String pattern = "%" + keyword.toLowerCase() + "%";
             return cb.or(
-                    cb.like(cb.lower(root.get("nom")),    pattern),
+                    cb.like(cb.lower(root.get("nom")), pattern),
                     cb.like(cb.lower(root.get("prenom")), pattern),
-                    cb.like(cb.lower(root.get("email")),  pattern),
-                    cb.like(cb.lower(root.get("poste")),  pattern)
+                    cb.like(cb.lower(root.get("email")), pattern),
+                    cb.like(cb.lower(root.get("poste")), pattern)
             );
         };
     }

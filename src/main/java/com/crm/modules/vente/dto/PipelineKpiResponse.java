@@ -14,12 +14,14 @@ import java.util.Map;
 @Data
 @Builder
 public class PipelineKpiResponse {
-    private Long       nbLeads;
-    private Long       nbOpportunites;
+    private Long nbLeads;
+    private Long nbOpportunites;
     private BigDecimal montantPipeline;
     private BigDecimal montantGagne;
-    private Long       nbDevisEnCours;
-    private Long       nbFacturesImpayees;
-    /** opportunités par statut ex: {"PROSPECTION":3, "QUALIFICATION":2} */
+    private Long nbDevisEnCours;
+    private Long nbFacturesImpayees;
+    /**
+     * opportunités par statut ex: {"PROSPECTION":3, "QUALIFICATION":2}
+     */
     private Map<String, Long> repartitionStatuts;
 }

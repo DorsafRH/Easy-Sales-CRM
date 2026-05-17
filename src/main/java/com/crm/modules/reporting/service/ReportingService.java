@@ -22,7 +22,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.*;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -38,12 +40,12 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class ReportingService implements IReportingService {
 
-    private final ClientRepository       clientRepository;
+    private final ClientRepository clientRepository;
     private final ProprietaireRepository proprietaireRepository;
-    private final ActiviteRepository     activiteRepository;
-    private final ActiviteMapper         activiteMapper;
-    private final OpportuniteRepository  opportuniteRepository;
-    private final DevisRepository        devisRepository;
+    private final ActiviteRepository activiteRepository;
+    private final ActiviteMapper activiteMapper;
+    private final OpportuniteRepository opportuniteRepository;
+    private final DevisRepository devisRepository;
 
     // ─────────────────────────────────────────────────────────
     //  KPIs
@@ -122,9 +124,9 @@ public class ReportingService implements IReportingService {
         if (periode == null) return null;
         return switch (periode) {
             case "AUJOURD_HUI" -> LocalDate.now().atStartOfDay();
-            case "CE_MOIS"     -> LocalDate.now().withDayOfMonth(1).atStartOfDay();
+            case "CE_MOIS" -> LocalDate.now().withDayOfMonth(1).atStartOfDay();
             case "CETTE_ANNEE" -> LocalDate.now().withDayOfYear(1).atStartOfDay();
-            default            -> null;
+            default -> null;
         };
     }
 
@@ -137,12 +139,12 @@ public class ReportingService implements IReportingService {
         if (date == null) return "";
         Duration d = Duration.between(date, LocalDateTime.now());
         long minutes = d.toMinutes();
-        if (minutes < 1)  return "a l instant";
+        if (minutes < 1) return "a l instant";
         if (minutes < 60) return "il y a " + minutes + " min";
         long heures = d.toHours();
-        if (heures < 24)  return "il y a " + heures + " h";
+        if (heures < 24) return "il y a " + heures + " h";
         long jours = d.toDays();
-        if (jours < 30)   return "il y a " + jours + " j";
+        if (jours < 30) return "il y a " + jours + " j";
         return "il y a " + (jours / 30) + " mois";
     }
 }

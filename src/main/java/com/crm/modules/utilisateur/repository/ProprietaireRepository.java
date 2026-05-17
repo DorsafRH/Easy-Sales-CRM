@@ -33,10 +33,10 @@ public interface ProprietaireRepository extends JpaRepository<ProprietaireEntrep
      * n'est pas supportée par les méthodes dérivées Spring Data.
      */
     @Query("""
-        SELECT COUNT(p) > 0 FROM ProprietaireEntreprise p
-        WHERE p.email = :email
-          AND (p.entrepriseCompte IS NULL
-               OR p.entrepriseCompte.isDeleted = false)
-    """)
+                SELECT COUNT(p) > 0 FROM ProprietaireEntreprise p
+                WHERE p.email = :email
+                  AND (p.entrepriseCompte IS NULL
+                       OR p.entrepriseCompte.isDeleted = false)
+            """)
     boolean existsByEmailAndCompteNonSupprime(@Param("email") String email);
 }

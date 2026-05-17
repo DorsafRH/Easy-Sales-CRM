@@ -13,12 +13,18 @@ package com.crm.shared.enums;
  */
 public enum TypeParticipant {
 
-    /** Client principal de la réunion. */
+    /**
+     * Client principal de la réunion.
+     */
     CLIENT,
 
-    /** Contact rattaché au client. */
+    /**
+     * Contact rattaché au client.
+     */
     CONTACT,
 
-    /** Participant externe (collaborateur, partenaire…). */
+    /**
+     * Participant externe (collaborateur, partenaire…).
+     */
     EXTERNE,
 }

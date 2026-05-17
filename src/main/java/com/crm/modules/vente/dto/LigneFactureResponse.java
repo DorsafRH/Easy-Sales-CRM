@@ -11,9 +11,9 @@ import java.math.BigDecimal;
 @Data
 @Builder
 public class LigneFactureResponse {
-    private Long       id;
-    private String     designation;
-    private Integer    quantite;
+    private Long id;
+    private String designation;
+    private Integer quantite;
     private BigDecimal prixUnitaireHt;
     private BigDecimal tauxTva;
     private BigDecimal remise;

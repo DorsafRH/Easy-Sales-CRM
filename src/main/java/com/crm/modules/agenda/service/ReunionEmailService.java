@@ -162,13 +162,13 @@ public class ReunionEmailService {
      * @return contenu ICS sous forme de chaîne
      */
     private String construireIcs(ReunionResponse reunion) {
-        LocalDateTime dateHeure   = LocalDateTime.parse(reunion.getDateHeure());
-        LocalDateTime dateFin     = dateHeure.plusMinutes(reunion.getDureeMinutes());
-        ZoneId        zoneTunisie = ZoneId.of("Africa/Tunis");
+        LocalDateTime dateHeure = LocalDateTime.parse(reunion.getDateHeure());
+        LocalDateTime dateFin = dateHeure.plusMinutes(reunion.getDureeMinutes());
+        ZoneId zoneTunisie = ZoneId.of("Africa/Tunis");
 
         DateTimeFormatter icsFormat = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'");
         String dtStart = dateHeure.atZone(zoneTunisie).withZoneSameInstant(ZoneOffset.UTC).format(icsFormat);
-        String dtEnd   = dateFin.atZone(zoneTunisie).withZoneSameInstant(ZoneOffset.UTC).format(icsFormat);
+        String dtEnd = dateFin.atZone(zoneTunisie).withZoneSameInstant(ZoneOffset.UTC).format(icsFormat);
 
         StringBuilder ics = new StringBuilder();
         ics.append("BEGIN:VCALENDAR\r\n")

@@ -27,6 +27,8 @@ public class LeadRequest {
 
     private String descriptionBesoin;
 
-    /** Lier à un client CRM existant (optionnel) */
+    /**
+     * Lier à un client CRM existant (optionnel)
+     */
     private Long clientId;
 }

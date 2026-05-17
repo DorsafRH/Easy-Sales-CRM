@@ -15,22 +15,34 @@ import java.util.List;
 @Builder
 public class ReportingKpisResponse {
 
-    /** Nombre de clients actifs sur la période sélectionnée. */
+    /**
+     * Nombre de clients actifs sur la période sélectionnée.
+     */
     private Long nbClients;
 
-    /** Nombre d'opportunités — Sprint 3. */
+    /**
+     * Nombre d'opportunités — Sprint 3.
+     */
     private Long nbOpportunites;
 
-    /** Chiffre d'affaires — Sprint 3. */
+    /**
+     * Chiffre d'affaires — Sprint 3.
+     */
     private BigDecimal chiffreAffaires;
 
-    /** Nombre de devis — Sprint 3. */
+    /**
+     * Nombre de devis — Sprint 3.
+     */
     private Long nbDevis;
 
-    /** Points du graphique sparkline — Sprint 3. */
+    /**
+     * Points du graphique sparkline — Sprint 3.
+     */
     private List<Integer> sparkline;
 
-    /** 10 dernières activités pour la section "Activité récente". */
+    /**
+     * 10 dernières activités pour la section "Activité récente".
+     */
     private List<ActiviteRecenteItem> activiteRecente;
 
     /**
@@ -40,8 +52,10 @@ public class ReportingKpisResponse {
     @Builder
     public static class ActiviteRecenteItem {
 
-        /** ID de l'entité concernée (clientId, contactId, produitId…). */
-        private Long   id;
+        /**
+         * ID de l'entité concernée (clientId, contactId, produitId…).
+         */
+        private Long id;
 
         /**
          * Type de l'entité pour la navigation mobile.
@@ -67,13 +81,15 @@ public class ReportingKpisResponse {
          */
         private String soustitre;
 
-        /** Date relative affichée (ex : "il y a 5 min"). */
+        /**
+         * Date relative affichée (ex : "il y a 5 min").
+         */
         private String dateRelative;
 
         /**
          * ID de l'entité parente — null si absent.
          * Pour les contacts : clientId pour la navigation vers ContactDetail.
          */
-        private Long   entiteParentId;
+        private Long entiteParentId;
     }
 }

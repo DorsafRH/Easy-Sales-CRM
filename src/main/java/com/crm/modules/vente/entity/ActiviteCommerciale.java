@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 @Table(
         name = "activites_commerciales",
         indexes = {
-                @Index(name = "idx_actcom_lead",       columnList = "lead_id"),
+                @Index(name = "idx_actcom_lead", columnList = "lead_id"),
                 @Index(name = "idx_actcom_opportunite", columnList = "opportunite_id"),
         }
 )
@@ -71,5 +71,7 @@ public class ActiviteCommerciale {
     private LocalDateTime dateCreation;
 
     @PrePersist
-    protected void onCreate() { this.dateCreation = LocalDateTime.now(); }
+    protected void onCreate() {
+        this.dateCreation = LocalDateTime.now();
+    }
 }

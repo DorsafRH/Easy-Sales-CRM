@@ -11,10 +11,10 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface LeadMapper {
 
-    @Mapping(target = "clientId",      source = "client.id")
-    @Mapping(target = "clientNom",     source = "client.nomAffichage")
-    @Mapping(target = "dateCreation",  expression = "java(lead.getDateCreation()  != null ? lead.getDateCreation().toString()  : null)")
+    @Mapping(target = "clientId", source = "client.id")
+    @Mapping(target = "clientNom", source = "client.nomAffichage")
+    @Mapping(target = "dateCreation", expression = "java(lead.getDateCreation()  != null ? lead.getDateCreation().toString()  : null)")
     @Mapping(target = "dateModification", expression = "java(lead.getDateModification() != null ? lead.getDateModification().toString() : null)")
-    @Mapping(target = "dateRelative",  ignore = true)
+    @Mapping(target = "dateRelative", ignore = true)
     LeadResponse toResponse(Lead lead);
 }

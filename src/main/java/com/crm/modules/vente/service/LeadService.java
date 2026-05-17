@@ -38,13 +38,13 @@ import java.util.List;
 @Transactional
 public class LeadService implements ILeadService {
 
-    private final LeadRepository        leadRepository;
+    private final LeadRepository leadRepository;
     private final OpportuniteRepository opportuniteRepository;
-    private final ClientRepository      clientRepository;
+    private final ClientRepository clientRepository;
     private final ProprietaireRepository proprietaireRepository;
-    private final LeadMapper            leadMapper;
-    private final OpportuniteMapper     opportuniteMapper;
-    private final IActiviteService      activiteService;
+    private final LeadMapper leadMapper;
+    private final OpportuniteMapper opportuniteMapper;
+    private final IActiviteService activiteService;
 
     // ─────────────────────────────────────────────────────────
     //  LISTE
@@ -279,11 +279,11 @@ public class LeadService implements ILeadService {
      */
     private int calculerScore(LeadRequest req) {
         int score = 0;
-        if (req.getEmail()           != null && !req.getEmail().isBlank())           score += 20;
-        if (req.getTelephone()       != null && !req.getTelephone().isBlank())       score += 20;
-        if (req.getDescriptionBesoin()!= null && !req.getDescriptionBesoin().isBlank()) score += 30;
-        if (req.getEntreprise()      != null && !req.getEntreprise().isBlank())      score += 15;
-        if (req.getPoste()           != null && !req.getPoste().isBlank())           score += 15;
+        if (req.getEmail() != null && !req.getEmail().isBlank()) score += 20;
+        if (req.getTelephone() != null && !req.getTelephone().isBlank()) score += 20;
+        if (req.getDescriptionBesoin() != null && !req.getDescriptionBesoin().isBlank()) score += 30;
+        if (req.getEntreprise() != null && !req.getEntreprise().isBlank()) score += 15;
+        if (req.getPoste() != null && !req.getPoste().isBlank()) score += 15;
         return score;
     }
 
@@ -297,12 +297,12 @@ public class LeadService implements ILeadService {
         if (date == null) return "";
         Duration d = Duration.between(date, LocalDateTime.now());
         long minutes = d.toMinutes();
-        if (minutes < 1)  return "à l'instant";
+        if (minutes < 1) return "à l'instant";
         if (minutes < 60) return "il y a " + minutes + " min";
         long h = d.toHours();
-        if (h < 24)       return "il y a " + h + "h";
+        if (h < 24) return "il y a " + h + "h";
         long j = d.toDays();
-        if (j < 30)       return "il y a " + j + "j";
+        if (j < 30) return "il y a " + j + "j";
         return "il y a " + (j / 30) + " mois";
     }
 }

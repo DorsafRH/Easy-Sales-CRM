@@ -10,9 +10,16 @@ import org.springframework.data.jpa.domain.Specification;
  */
 public class CategorieSpecification {
 
-    private CategorieSpecification() {}
+    /*
+    todo  : use hibernate genrator  , dont make hard coding
+     */
 
-    /** Filtre les catégories appartenant à un propriétaire donné. */
+    private CategorieSpecification() {
+    }
+
+    /**
+     * Filtre les catégories appartenant à un propriétaire donné.
+     */
     public static Specification<Categorie> duProprietaire(Long proprietaireId) {
         return (root, query, cb) ->
                 cb.equal(root.get("proprietaire").get("id"), proprietaireId);
@@ -27,7 +34,7 @@ public class CategorieSpecification {
             if (keyword == null || keyword.isBlank()) return cb.conjunction();
             String pattern = "%" + keyword.toLowerCase() + "%";
             return cb.or(
-                    cb.like(cb.lower(root.get("nom")),         pattern),
+                    cb.like(cb.lower(root.get("nom")), pattern),
                     cb.like(cb.lower(root.get("description")), pattern)
             );
         };

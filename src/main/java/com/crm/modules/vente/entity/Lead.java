@@ -25,7 +25,7 @@ import java.time.LocalDateTime;
         name = "leads",
         indexes = {
                 @Index(name = "idx_lead_proprietaire", columnList = "proprietaire_id"),
-                @Index(name = "idx_lead_statut",       columnList = "statut"),
+                @Index(name = "idx_lead_statut", columnList = "statut"),
         }
 )
 public class Lead {
@@ -63,7 +63,9 @@ public class Lead {
     @Builder.Default
     private StatutLead statut = StatutLead.NOUVEAU;
 
-    /** Score de priorité 0-100 — calculé localement côté service */
+    /**
+     * Score de priorité 0-100 — calculé localement côté service
+     */
     @Column(name = "score")
     @Builder.Default
     private Integer score = 0;
@@ -89,8 +91,12 @@ public class Lead {
     private LocalDateTime dateModification;
 
     @PrePersist
-    protected void onCreate() { this.dateCreation = LocalDateTime.now(); }
+    protected void onCreate() {
+        this.dateCreation = LocalDateTime.now();
+    }
 
     @PreUpdate
-    protected void onUpdate() { this.dateModification = LocalDateTime.now(); }
+    protected void onUpdate() {
+        this.dateModification = LocalDateTime.now();
+    }
 }

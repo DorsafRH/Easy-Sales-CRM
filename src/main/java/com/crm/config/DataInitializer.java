@@ -24,6 +24,12 @@ public class DataInitializer implements CommandLineRunner {
     private final UtilisateurRepository utilisateurRepository;
     private final PasswordEncoder passwordEncoder;
 
+
+    /*
+    todo  : dont use @value directly  , use configuration class
+     */
+
+
     @Value("${admin.default.email:admin@easysalescrm.com}")
     private String defaultAdminEmail;
 
@@ -39,6 +45,9 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         if (!utilisateurRepository.existsByEmail(defaultAdminEmail)) {
+            /*
+            todo  : use constructor or builder  on superAdmin
+             */
             SuperAdmin admin = new SuperAdmin();
             admin.setNom(defaultAdminNom);
             admin.setPrenom(defaultAdminPrenom);

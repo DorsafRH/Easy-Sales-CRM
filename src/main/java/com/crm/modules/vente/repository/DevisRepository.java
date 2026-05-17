@@ -22,7 +22,9 @@ public interface DevisRepository
 
     long countByProprietaireIdAndStatut(Long proprietaireId, StatutDevis statut);
 
-    /** Génération numéro séquentiel : dernier DV-YYYY-XXXX */
+    /**
+     * Génération numéro séquentiel : dernier DV-YYYY-XXXX
+     */
     Optional<Devis> findTopByProprietaireIdAndNumeroStartingWithOrderByNumeroDesc(
             Long proprietaireId, String prefixe);
 }

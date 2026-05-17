@@ -27,9 +27,9 @@ import java.util.List;
 @Transactional
 public class FactureService implements IFactureService {
 
-    private final FactureRepository  factureRepository;
-    private final FactureMapper      factureMapper;
-    private final IActiviteService   activiteService;
+    private final FactureRepository factureRepository;
+    private final FactureMapper factureMapper;
+    private final IActiviteService activiteService;
 
     @Transactional(readOnly = true)
     @Override
@@ -53,16 +53,16 @@ public class FactureService implements IFactureService {
         validerTransition(facture.getStatut(), statut);
 
         facture.setStatut(statut);
-        if (statut == StatutFacture.EMISE)  facture.setDateEmission(LocalDateTime.now());
-        if (statut == StatutFacture.PAYEE)  facture.setDatePaiement(LocalDateTime.now());
+        if (statut == StatutFacture.EMISE) facture.setDateEmission(LocalDateTime.now());
+        if (statut == StatutFacture.PAYEE) facture.setDatePaiement(LocalDateTime.now());
 
         facture = factureRepository.save(facture);
 
         TypeActivite type = switch (statut) {
-            case EMISE   -> TypeActivite.FACTURE_EMISE;
-            case PAYEE   -> TypeActivite.FACTURE_PAYEE;
+            case EMISE -> TypeActivite.FACTURE_EMISE;
+            case PAYEE -> TypeActivite.FACTURE_PAYEE;
             case ANNULEE -> TypeActivite.FACTURE_ANNULEE;
-            default      -> TypeActivite.FACTURE_CREEE;
+            default -> TypeActivite.FACTURE_CREEE;
         };
 
         activiteService.enregistrer(
@@ -80,9 +80,10 @@ public class FactureService implements IFactureService {
     private void validerTransition(StatutFacture actuel, StatutFacture nouveau) {
         boolean ok = switch (actuel) {
             case BROUILLON -> nouveau == StatutFacture.EMISE;
-            case EMISE     -> nouveau == StatutFacture.PAYEE || nouveau == StatutFacture.ANNULEE || nouveau == StatutFacture.EN_RETARD;
+            case EMISE ->
+                    nouveau == StatutFacture.PAYEE || nouveau == StatutFacture.ANNULEE || nouveau == StatutFacture.EN_RETARD;
             case EN_RETARD -> nouveau == StatutFacture.PAYEE || nouveau == StatutFacture.ANNULEE;
-            default        -> false;
+            default -> false;
         };
         if (!ok) throw new BusinessException("Transition invalide : " + actuel + " → " + nouveau);
     }

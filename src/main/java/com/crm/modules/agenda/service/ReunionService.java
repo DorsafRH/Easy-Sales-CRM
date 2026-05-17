@@ -49,11 +49,11 @@ import java.util.stream.Collectors;
 @Transactional
 public class ReunionService implements IReunionService {
 
-    private final ReunionRepository      reunionRepository;
-    private final ClientRepository       clientRepository;
+    private final ReunionRepository reunionRepository;
+    private final ClientRepository clientRepository;
     private final ProprietaireRepository proprietaireRepository;
-    private final ReunionMapper          reunionMapper;
-    private final ReunionEmailService    reunionEmailService;
+    private final ReunionMapper reunionMapper;
+    private final ReunionEmailService reunionEmailService;
 
     // ─────────────────────────────────────────────────────────────────────────
     //  LISTE
@@ -79,7 +79,7 @@ public class ReunionService implements IReunionService {
                                                String debutSemaine,
                                                String finSemaine) {
         LocalDateTime debut = LocalDate.parse(debutSemaine).atStartOfDay();
-        LocalDateTime fin   = LocalDate.parse(finSemaine).atTime(LocalTime.MAX);
+        LocalDateTime fin = LocalDate.parse(finSemaine).atTime(LocalTime.MAX);
 
         return reunionRepository
                 .findByProprietaireIdAndDateHeureBetweenOrderByDateHeureAsc(
@@ -384,16 +384,16 @@ public class ReunionService implements IReunionService {
 
         if (minutes < 0) {
             long abs = Math.abs(minutes);
-            if (abs < 60)  return "il y a " + abs + " min";
+            if (abs < 60) return "il y a " + abs + " min";
             long h = Math.abs(d.toHours());
-            if (h  < 24)   return "il y a " + h + " h";
+            if (h < 24) return "il y a " + h + " h";
             return "il y a " + Math.abs(d.toDays()) + " j";
         }
-        if (minutes < 60)  return "dans " + minutes + " min";
+        if (minutes < 60) return "dans " + minutes + " min";
         long h = d.toHours();
-        if (h  < 24)       return "dans " + h + " h";
+        if (h < 24) return "dans " + h + " h";
         long j = d.toDays();
-        if (j == 1)        return "demain";
+        if (j == 1) return "demain";
         return "dans " + j + " j";
     }
 }

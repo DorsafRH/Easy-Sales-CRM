@@ -13,9 +13,9 @@ import java.time.LocalDateTime;
 @Data
 public class CategorieResponse {
 
-    private Long          id;
-    private String        nom;
-    private String        description;
+    private Long id;
+    private String nom;
+    private String description;
     private LocalDateTime dateCreation;
 
     private int nbProduits;

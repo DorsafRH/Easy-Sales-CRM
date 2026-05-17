@@ -33,8 +33,8 @@ import java.util.List;
 public class CategorieService implements ICategorieService {
 
     private final CategorieRepository categorieRepository;
-    private final ProduitRepository   produitRepository;
-    private final CategorieMapper     categorieMapper;
+    private final ProduitRepository produitRepository;
+    private final CategorieMapper categorieMapper;
 
     // ─────────────────────────────────────────────────────────
     //  LECTURE
@@ -101,7 +101,7 @@ public class CategorieService implements ICategorieService {
 
     /**
      * {@inheritDoc}
-     *
+     * <p>
      * Lève {@link BusinessException} si la catégorie contient des produits actifs.
      * Le client doit d'abord appeler {@link #desactiverProduitsCategorie} ou
      * {@link #retirerCategorieProduits} avant de supprimer.
@@ -122,10 +122,10 @@ public class CategorieService implements ICategorieService {
 
     /**
      * {@inheritDoc}
-     *
+     * <p>
      * Passe tous les produits ACTIF de la catégorie au statut INACTIF
      * ET retire leur référence à la catégorie (categorieId → null).
-     *
+     * <p>
      * POURQUOI retirer aussi la référence ?
      * La contrainte de clé étrangère FK en base de données interdit de
      * supprimer une catégorie tant que des produits y font référence,
@@ -141,11 +141,9 @@ public class CategorieService implements ICategorieService {
                 .findByCategorieIdAndProprietaireId(categorieId, proprietaireId);
 
         produits.forEach(p -> {
-            // Désactive le produit s'il est ACTIF
             if (StatutProduit.ACTIF.equals(p.getStatut())) {
                 p.setStatut(StatutProduit.INACTIF);
             }
-            // Retire la référence à la catégorie pour libérer la contrainte FK
             p.setCategorie(null);
             p.setDateModification(LocalDateTime.now());
         });
@@ -160,7 +158,7 @@ public class CategorieService implements ICategorieService {
 
     /**
      * {@inheritDoc}
-     *
+     * <p>
      * Retire la catégorie (categorieId → null) de tous les produits.
      * Les produits restent dans leur statut actuel (ACTIF, INACTIF ou ARCHIVE).
      */

@@ -11,20 +11,20 @@ import lombok.Data;
 @Data
 @Builder
 public class LeadResponse {
-    private Long       id;
-    private String     nom;
-    private String     email;
-    private String     telephone;
-    private String     entreprise;
-    private String     poste;
+    private Long id;
+    private String nom;
+    private String email;
+    private String telephone;
+    private String entreprise;
+    private String poste;
     private SourceLead source;
-    private String     descriptionBesoin;
+    private String descriptionBesoin;
     private StatutLead statut;
-    private Integer    score;
-    private String     raisonPerte;
-    private Long       clientId;
-    private String     clientNom;
-    private String     dateCreation;
-    private String     dateModification;
-    private String     dateRelative;
+    private Integer score;
+    private String raisonPerte;
+    private Long clientId;
+    private String clientNom;
+    private String dateCreation;
+    private String dateModification;
+    private String dateRelative;
 }

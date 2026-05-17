@@ -25,6 +25,7 @@ public interface IPasswordResetService {
      * @throws com.crm.shared.exception.BusinessException si le token est invalide ou expiré
      */
     void reinitialiserMotDePasse(ReinitialisationMotDePasseRequest request);
+
     /**
      * Vérifie que le code à 6 chiffres est valide.
      * Appelé avant l'écran de nouveau mot de passe.

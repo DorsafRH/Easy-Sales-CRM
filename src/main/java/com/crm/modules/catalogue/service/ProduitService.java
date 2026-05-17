@@ -2,6 +2,7 @@ package com.crm.modules.catalogue.service;
 
 import com.crm.modules.catalogue.dto.ProduitRequest;
 import com.crm.modules.catalogue.dto.ProduitResponse;
+import com.crm.modules.catalogue.entity.Categorie;
 import com.crm.modules.catalogue.entity.Produit;
 import com.crm.modules.catalogue.mapper.ProduitMapper;
 import com.crm.modules.catalogue.repository.CategorieRepository;
@@ -25,11 +26,8 @@ import java.time.Year;
 import java.util.List;
 
 /**
- * Implémentation du service de gestion des produits du catalogue.
- *
- * <p>Génération du code produit : {@code findTop...OrderByCodeProduitDesc}
- * retourne le dernier code de l'année courante ; le numéro de séquence
- * est extrait et incrémenté en Java.</p>
+ * Service de gestion des produits du catalogue.
+ * Chaque méthode publique délègue à des helpers privés courts.
  *
  * @author Riahi Dorsaf
  */
@@ -42,17 +40,16 @@ public class ProduitService implements IProduitService {
     private final ProduitRepository   produitRepository;
     private final CategorieRepository categorieRepository;
     private final ProduitMapper       produitMapper;
-
-    /**
-     * Injection via l'interface IActiviteService — pas l'implémentation concrète.
-     * Bonne pratique SOLID D : dépendre d'une abstraction, pas d'une implémentation.
-     */
     private final IActiviteService    activiteService;
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
     //  LECTURE
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
 
+    /**
+     * Liste les produits selon les filtres fournis.
+     * Chaque critère null est ignoré par la spécification.
+     */
     @Transactional(readOnly = true)
     @Override
     public List<ProduitResponse> listerProduits(Long proprietaireId,
@@ -60,194 +57,181 @@ public class ProduitService implements IProduitService {
                                                 StatutProduit statut,
                                                 Long categorieId,
                                                 String keyword) {
-        Specification<Produit> spec =
-                ProduitSpecification.duProprietaire(proprietaireId)
-                        .and(ProduitSpecification.avecType(type))
-                        .and(ProduitSpecification.avecStatut(statut))
-                        .and(ProduitSpecification.avecCategorie(categorieId))
-                        .and(ProduitSpecification.recherche(keyword));
-
+        Specification<Produit> spec = construireSpec(
+                proprietaireId, type, statut, categorieId, keyword);
         return produitRepository.findAll(spec)
                 .stream()
-                .map(produitMapper::toResponse)
+                .map(this::toResponse)
                 .toList();
     }
 
+    /**
+     * Retourne le détail d'un produit par son identifiant.
+     */
     @Transactional(readOnly = true)
     @Override
     public ProduitResponse obtenirProduit(Long id, Long proprietaireId) {
-        return produitMapper.toResponse(charger(id, proprietaireId));
+        return toResponse(charger(id, proprietaireId));
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
     //  ÉCRITURE
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
 
+    /**
+     * Crée un nouveau produit dans le catalogue.
+     * Vérifie l'unicité du nom avant la création.
+     */
     @Override
     public ProduitResponse creerProduit(ProduitRequest req,
                                         ProprietaireEntreprise proprietaire) {
-        if (produitRepository.existsByNomIgnoreCaseAndProprietaireId(
-                req.getNom(), proprietaire.getId())) {
-            throw new BusinessException("Un produit avec ce nom existe déjà");
-        }
-
-        Produit produit = new Produit();
-        produit.setProprietaire(proprietaire);
-        produit.setCodeProduit(genererCode(proprietaire.getId()));
-        appliquer(req, produit, proprietaire.getId());
-        if (produit.getStatut() == null) produit.setStatut(StatutProduit.ACTIF);
+        verifierUniciteNom(req.getNom(), null, proprietaire.getId());
+        Produit produit = initialiserProduit(req, proprietaire);
         produit = produitRepository.save(produit);
         log.info("[PRODUIT] Créé — code={}", produit.getCodeProduit());
-
-        // titre = label de l'action | description = nom du produit
-        activiteService.enregistrer(
-                TypeActivite.PRODUIT_CREE,
-                "Nouveau produit ajouté",
-                produit.getNom(),
-                produit.getId(), "PRODUIT", null, proprietaire);
-
-        return produitMapper.toResponse(produit);
+        enregistrerActivite(TypeActivite.PRODUIT_CREE,
+                "Nouveau produit ajouté", produit, proprietaire);
+        return toResponse(produit);
     }
 
+    /**
+     * Modifie un produit existant.
+     * Vérifie l'unicité du nom si celui-ci a changé.
+     */
     @Override
     public ProduitResponse modifierProduit(Long id, ProduitRequest req,
                                            Long proprietaireId) {
         Produit produit = charger(id, proprietaireId);
-        if (!produit.getNom().equalsIgnoreCase(req.getNom())
-                && produitRepository.existsByNomIgnoreCaseAndProprietaireId(
-                req.getNom(), proprietaireId)) {
-            throw new BusinessException("Un produit avec ce nom existe déjà");
-        }
-
+        verifierUniciteNom(req.getNom(), produit.getNom(), proprietaireId);
         appliquer(req, produit, proprietaireId);
         produit.setDateModification(LocalDateTime.now());
         produit = produitRepository.save(produit);
-
-        activiteService.enregistrer(
-                TypeActivite.PRODUIT_MODIFIE,
-                "Produit mis à jour",
-                produit.getNom(),
-                produit.getId(), "PRODUIT", null, produit.getProprietaire());
-
-        return produitMapper.toResponse(produit);
+        enregistrerActivite(TypeActivite.PRODUIT_MODIFIE,
+                "Produit mis à jour", produit, produit.getProprietaire());
+        return toResponse(produit);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    //  ARCHIVAGE / DÉSARCHIVAGE
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
+    //  ARCHIVAGE
+    // ─────────────────────────────────────────────────────────
 
+    /**
+     * Archive un produit (ACTIF/INACTIF → ARCHIVE).
+     */
     @Override
     public void archiverProduit(Long id, Long proprietaireId) {
         Produit produit = charger(id, proprietaireId);
         if (StatutProduit.ARCHIVE.equals(produit.getStatut())) {
             throw new BusinessException("Ce produit est déjà archivé");
         }
-        produit.setStatut(StatutProduit.ARCHIVE);
-        produit.setDateModification(LocalDateTime.now());
-        produitRepository.save(produit);
+        changerStatut(produit, StatutProduit.ARCHIVE);
+        enregistrerActivite(TypeActivite.PRODUIT_ARCHIVE,
+                "Produit archivé", produit, produit.getProprietaire());
         log.info("[PRODUIT] Archivé — id={}", id);
-
-        activiteService.enregistrer(
-                TypeActivite.PRODUIT_ARCHIVE,
-                "Produit archivé",
-                produit.getNom(),
-                id, "PRODUIT", null, produit.getProprietaire());
     }
 
+    /**
+     * Désarchive un produit (ARCHIVE → INACTIF).
+     */
     @Override
     public void desarchiverProduit(Long id, Long proprietaireId) {
         Produit produit = charger(id, proprietaireId);
         if (!StatutProduit.ARCHIVE.equals(produit.getStatut())) {
             throw new BusinessException("Ce produit n'est pas archivé");
         }
-        produit.setStatut(StatutProduit.INACTIF);
-        produit.setDateModification(LocalDateTime.now());
-        produitRepository.save(produit);
+        changerStatut(produit, StatutProduit.INACTIF);
+        enregistrerActivite(TypeActivite.PRODUIT_DESARCHIVE,
+                "Produit désarchivé", produit, produit.getProprietaire());
         log.info("[PRODUIT] Désarchivé → INACTIF — id={}", id);
-
-        activiteService.enregistrer(
-                TypeActivite.PRODUIT_DESARCHIVE,
-                "Produit désarchivé",
-                produit.getNom(),
-                id, "PRODUIT", null, produit.getProprietaire());
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
     //  TOGGLE ACTIF / INACTIF
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
 
+    /**
+     * Active un produit INACTIF.
+     * Lève une exception si le produit est archivé.
+     */
     @Override
     public void activerProduit(Long id, Long proprietaireId) {
         Produit produit = charger(id, proprietaireId);
-        if (StatutProduit.ARCHIVE.equals(produit.getStatut())) {
-            throw new BusinessException(
-                    "Impossible d'activer un produit archivé. Désarchivez-le d'abord.");
-        }
+        verifierNonArchive(produit, "activer");
         if (StatutProduit.ACTIF.equals(produit.getStatut())) {
             throw new BusinessException("Ce produit est déjà actif");
         }
-        produit.setStatut(StatutProduit.ACTIF);
-        produit.setDateModification(LocalDateTime.now());
-        produitRepository.save(produit);
+        changerStatut(produit, StatutProduit.ACTIF);
+        enregistrerActivite(TypeActivite.PRODUIT_ACTIVE,
+                "Produit activé", produit, produit.getProprietaire());
         log.info("[PRODUIT] Activé — id={}", id);
-
-        activiteService.enregistrer(
-                TypeActivite.PRODUIT_ACTIVE,
-                "Produit activé",
-                produit.getNom(),
-                id, "PRODUIT", null, produit.getProprietaire());
     }
 
+    /**
+     * Désactive un produit ACTIF.
+     * Lève une exception si le produit est archivé.
+     */
     @Override
     public void desactiverProduit(Long id, Long proprietaireId) {
         Produit produit = charger(id, proprietaireId);
-        if (StatutProduit.ARCHIVE.equals(produit.getStatut())) {
-            throw new BusinessException(
-                    "Impossible de désactiver un produit archivé.");
-        }
+        verifierNonArchive(produit, "désactiver");
         if (StatutProduit.INACTIF.equals(produit.getStatut())) {
             throw new BusinessException("Ce produit est déjà inactif");
         }
-        produit.setStatut(StatutProduit.INACTIF);
-        produit.setDateModification(LocalDateTime.now());
-        produitRepository.save(produit);
+        changerStatut(produit, StatutProduit.INACTIF);
+        enregistrerActivite(TypeActivite.PRODUIT_DESACTIVE,
+                "Produit désactivé", produit, produit.getProprietaire());
         log.info("[PRODUIT] Désactivé — id={}", id);
-
-        activiteService.enregistrer(
-                TypeActivite.PRODUIT_DESACTIVE,
-                "Produit désactivé",
-                produit.getNom(),
-                id, "PRODUIT", null, produit.getProprietaire());
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    //  HELPERS PRIVÉS
-    // ─────────────────────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────
+    //  HELPERS PRIVÉS — CHARGEMENT
+    // ─────────────────────────────────────────────────────────
 
+    /**
+     * Charge un produit par son identifiant et son propriétaire.
+     * Lève une exception si introuvable.
+     */
     private Produit charger(Long id, Long proprietaireId) {
         return produitRepository.findByIdAndProprietaireId(id, proprietaireId)
                 .orElseThrow(() -> new ResourceNotFoundException("Produit introuvable"));
     }
 
     /**
-     * Génère un code séquentiel au format {@code PRD-YYYY-NNNN}.
+     * Construit la spécification JPA pour le filtrage.
      */
-    private String genererCode(Long proprietaireId) {
-        String annee   = String.valueOf(Year.now().getValue());
-        String prefixe = "PRD-" + annee + "-";
-
-        int seq = produitRepository
-                .findTopByProprietaireIdAndCodeProduitStartingWithOrderByCodeProduitDesc(
-                        proprietaireId, prefixe)
-                .map(p -> {
-                    String code = p.getCodeProduit();
-                    return Integer.parseInt(code.substring(code.length() - 4)) + 1;
-                })
-                .orElse(1);
-
-        return String.format("PRD-%s-%04d", annee, seq);
+    private Specification<Produit> construireSpec(Long proprietaireId,
+                                                  TypeProduit type,
+                                                  StatutProduit statut,
+                                                  Long categorieId,
+                                                  String keyword) {
+        return ProduitSpecification.duProprietaire(proprietaireId)
+                .and(ProduitSpecification.avecType(type))
+                .and(ProduitSpecification.avecStatut(statut))
+                .and(ProduitSpecification.avecCategorie(categorieId))
+                .and(ProduitSpecification.recherche(keyword));
     }
 
+    // ─────────────────────────────────────────────────────────
+    //  HELPERS PRIVÉS — CRÉATION / MODIFICATION
+    // ─────────────────────────────────────────────────────────
+
+    /**
+     * Initialise une nouvelle entité Produit depuis la requête.
+     */
+    private Produit initialiserProduit(ProduitRequest req,
+                                       ProprietaireEntreprise proprietaire) {
+        Produit produit = new Produit();
+        produit.setProprietaire(proprietaire);
+        produit.setCodeProduit(genererCode(proprietaire.getId()));
+        appliquer(req, produit, proprietaire.getId());
+        if (produit.getStatut() == null) produit.setStatut(StatutProduit.ACTIF);
+        return produit;
+    }
+
+    /**
+     * Applique les champs de la requête sur l'entité Produit.
+     * Gère la logique SERVICE vs STOCKABLE pour le stock.
+     */
     private void appliquer(ProduitRequest req, Produit produit, Long proprietaireId) {
         produit.setNom(req.getNom());
         produit.setDescription(req.getDescription());
@@ -256,20 +240,146 @@ public class ProduitService implements IProduitService {
         produit.setTauxTVA(req.getTauxTVA());
         produit.setUnite(req.getUnite());
         if (req.getStatut() != null) produit.setStatut(req.getStatut());
+        appliquerStock(req, produit);
+        appliquerCategorie(req, produit, proprietaireId);
+    }
 
-        boolean estStockable = req.getType() != null
-                && "STOCKABLE".equals(req.getType().name());
+    /**
+     * Applique les champs stock selon le type du produit.
+     * SERVICE → stockDisponible et stockMinimum sont null.
+     * STOCKABLE → valorisés depuis la requête.
+     */
+    private void appliquerStock(ProduitRequest req, Produit produit) {
+        boolean estStockable = TypeProduit.STOCKABLE.equals(req.getType());
         produit.setStockDisponible(estStockable
                 ? (req.getStockDisponible() != null ? req.getStockDisponible() : 0)
                 : null);
+        produit.setStockMinimum(estStockable ? req.getStockMinimum() : null);
+    }
 
-        if (req.getCategorieId() != null) {
-            produit.setCategorie(
-                    categorieRepository.findByIdAndProprietaireId(
-                                    req.getCategorieId(), proprietaireId)
-                            .orElseThrow(() -> new BusinessException("Catégorie introuvable")));
-        } else {
+    /**
+     * Applique la catégorie si fournie, sinon null.
+     */
+    private void appliquerCategorie(ProduitRequest req, Produit produit,
+                                    Long proprietaireId) {
+        if (req.getCategorieId() == null) {
             produit.setCategorie(null);
+            return;
         }
+        Categorie categorie = categorieRepository
+                .findByIdAndProprietaireId(req.getCategorieId(), proprietaireId)
+                .orElseThrow(() -> new BusinessException("Catégorie introuvable"));
+        produit.setCategorie(categorie);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  HELPERS PRIVÉS — STATUT
+    // ─────────────────────────────────────────────────────────
+
+    /**
+     * Change le statut du produit et sauvegarde immédiatement.
+     */
+    private void changerStatut(Produit produit, StatutProduit nouveauStatut) {
+        produit.setStatut(nouveauStatut);
+        produit.setDateModification(LocalDateTime.now());
+        produitRepository.save(produit);
+    }
+
+    /**
+     * Vérifie que le produit n'est pas archivé avant une action.
+     * Lève une BusinessException si archivé.
+     */
+    private void verifierNonArchive(Produit produit, String action) {
+        if (StatutProduit.ARCHIVE.equals(produit.getStatut())) {
+            throw new BusinessException(
+                    "Impossible de " + action + " un produit archivé.");
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  HELPERS PRIVÉS — VALIDATION
+    // ─────────────────────────────────────────────────────────
+
+    /**
+     * Vérifie que le nom n'est pas déjà utilisé par un autre produit.
+     * nomActuel null → création (tout doublon est refusé).
+     * nomActuel non null → modification (autorisé si même nom).
+     */
+    private void verifierUniciteNom(String nomNouv, String nomActuel,
+                                    Long proprietaireId) {
+        if (nomNouv.equalsIgnoreCase(nomActuel)) return;
+        if (produitRepository.existsByNomIgnoreCaseAndProprietaireId(
+                nomNouv, proprietaireId)) {
+            throw new BusinessException("Un produit avec ce nom existe déjà");
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  HELPERS PRIVÉS — MAPPING
+    // ─────────────────────────────────────────────────────────
+
+    /**
+     * Mappe un Produit vers son DTO de réponse.
+     * Calcule le champ enAlerte côté service (non géré par MapStruct).
+     */
+    private ProduitResponse toResponse(Produit produit) {
+        ProduitResponse response = produitMapper.toResponse(produit);
+        response.setStockMinimum(produit.getStockMinimum());
+        response.setEnAlerte(calculerAlerte(produit));
+        return response;
+    }
+
+    /**
+     * Retourne true si le produit STOCKABLE est en alerte de stock.
+     * Un produit SERVICE ne déclenche jamais d'alerte.
+     */
+    private boolean calculerAlerte(Produit produit) {
+        if (!TypeProduit.STOCKABLE.equals(produit.getType())) return false;
+        if (produit.getStockDisponible() == null) return false;
+        if (produit.getStockDisponible() == 0) return true;
+        if (produit.getStockMinimum() == null) return false;
+        return produit.getStockDisponible() <= produit.getStockMinimum();
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  HELPERS PRIVÉS — ACTIVITÉ
+    // ─────────────────────────────────────────────────────────
+
+    /**
+     * Enregistre une activité dans le journal de bord.
+     */
+    private void enregistrerActivite(TypeActivite type, String titre,
+                                     Produit produit,
+                                     ProprietaireEntreprise proprietaire) {
+        activiteService.enregistrer(
+                type, titre, produit.getNom(),
+                produit.getId(), "PRODUIT", null, proprietaire);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  HELPERS PRIVÉS — GÉNÉRATION CODE
+    // ─────────────────────────────────────────────────────────
+
+    /**
+     * Génère un code séquentiel au format PRD-YYYY-NNNN.
+     * Utilise le dernier code de l'année courante pour incrémenter.
+     */
+    private String genererCode(Long proprietaireId) {
+        String annee   = String.valueOf(Year.now().getValue());
+        String prefixe = "PRD-" + annee + "-";
+        int seq = produitRepository
+                .findTopByProprietaireIdAndCodeProduitStartingWithOrderByCodeProduitDesc(
+                        proprietaireId, prefixe)
+                .map(p -> extraireSequence(p.getCodeProduit()) + 1)
+                .orElse(1);
+        return String.format("PRD-%s-%04d", annee, seq);
+    }
+
+    /**
+     * Extrait le numéro de séquence depuis un code produit.
+     * Exemple : "PRD-2026-0042" → 42.
+     */
+    private int extraireSequence(String code) {
+        return Integer.parseInt(code.substring(code.length() - 4));
     }
 }

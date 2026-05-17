@@ -11,11 +11,11 @@ import java.math.BigDecimal;
 @Data
 @Builder
 public class LigneDevisResponse {
-    private Long       id;
-    private Long       produitId;
-    private String     produitNom;
-    private String     designation;
-    private Integer    quantite;
+    private Long id;
+    private Long produitId;
+    private String produitNom;
+    private String designation;
+    private Integer quantite;
     private BigDecimal prixUnitaireHt;
     private BigDecimal tauxTva;
     private BigDecimal remise;

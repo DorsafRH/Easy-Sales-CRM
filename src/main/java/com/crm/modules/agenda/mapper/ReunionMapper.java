@@ -27,11 +27,11 @@ public interface ReunionMapper {
      * @param reunion entité à convertir
      * @return DTO de réponse
      */
-    @Mapping(target = "clientId",    source = "client.id")
-    @Mapping(target = "clientNom",   ignore = true)
-    @Mapping(target = "dateHeure",   expression = "java(reunion.getDateHeure() != null ? reunion.getDateHeure().toString() : null)")
-    @Mapping(target = "dateCreation",expression = "java(reunion.getDateCreation() != null ? reunion.getDateCreation().toString() : null)")
-    @Mapping(target = "dateRelative",ignore = true)
+    @Mapping(target = "clientId", source = "client.id")
+    @Mapping(target = "clientNom", ignore = true)
+    @Mapping(target = "dateHeure", expression = "java(reunion.getDateHeure() != null ? reunion.getDateHeure().toString() : null)")
+    @Mapping(target = "dateCreation", expression = "java(reunion.getDateCreation() != null ? reunion.getDateCreation().toString() : null)")
+    @Mapping(target = "dateRelative", ignore = true)
     ReunionResponse toResponse(Reunion reunion);
 
     /**
