@@ -6,6 +6,7 @@ package com.crm.shared.enums;
 public enum StatutFacture {
     BROUILLON,
     EMISE,
+    LIVREE,
     PAYEE,
     ANNULEE,
     EN_RETARD

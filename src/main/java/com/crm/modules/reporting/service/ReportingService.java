@@ -9,9 +9,12 @@ import com.crm.modules.reporting.mapper.ActiviteMapper;
 import com.crm.modules.reporting.repository.ActiviteRepository;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
 import com.crm.modules.utilisateur.repository.ProprietaireRepository;
+import com.crm.modules.vente.entity.Facture;
 import com.crm.modules.vente.repository.DevisRepository;
+import com.crm.modules.vente.repository.FactureRepository;
 import com.crm.modules.vente.repository.OpportuniteRepository;
 import com.crm.shared.enums.StatutDevis;
+import com.crm.shared.enums.StatutFacture;
 import com.crm.shared.exception.ResourceNotFoundException;
 import com.crm.shared.response.PageResponse;
 import lombok.RequiredArgsConstructor;
@@ -26,13 +29,8 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-
 /**
- * Implémentation du service de reporting.
- * Sprint 3 : KPIs enrichis avec opportunités et devis réels.
- *
  * @author Riahi Dorsaf
- * @see IReportingService
  */
 @Slf4j
 @Service
@@ -46,30 +44,30 @@ public class ReportingService implements IReportingService {
     private final ActiviteMapper activiteMapper;
     private final OpportuniteRepository opportuniteRepository;
     private final DevisRepository devisRepository;
-
-    // ─────────────────────────────────────────────────────────
-    //  KPIs
-    // ─────────────────────────────────────────────────────────
+    private final FactureRepository factureRepository;
 
     @Override
     public ReportingKpisResponse getKpis(String emailProprietaire, String periode) {
 
         ProprietaireEntreprise proprietaire = chargerProprietaire(emailProprietaire);
         long proprietaireId = proprietaire.getId();
-
         LocalDateTime since = resolverPeriode(periode);
 
         long nbClients = (since == null)
-                ? clientRepository.countByProprietaireIdAndIsDeletedFalseAndStatut(
-                proprietaireId, "ACTIF")
+                ? clientRepository.countByProprietaireIdAndIsDeletedFalseAndStatut(proprietaireId, "ACTIF")
                 : clientRepository.countByProprietaireIdAndIsDeletedFalseAndStatutAndDateCreationAfter(
                 proprietaireId, "ACTIF", since);
 
         long nbOpportunites = opportuniteRepository.countByProprietaireId(proprietaireId);
 
-        long nbDevis = devisRepository.countByProprietaireIdAndStatut(
-                proprietaireId, StatutDevis.ENVOYE);
+        long nbDevis = devisRepository.countByProprietaireIdAndStatut(proprietaireId, StatutDevis.ENVOYE);
 
+        // CA réel = somme TTC des factures PAYÉE uniquement
+        BigDecimal chiffreAffaires = factureRepository
+                .findByProprietaireIdAndStatut(proprietaireId, StatutFacture.PAYEE)
+                .stream()
+                .map(Facture::getMontantTtc)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         List<Activite> activites = activiteRepository
                 .findTop10ByProprietaireIdOrderByDateCreationDesc(proprietaireId);
 
@@ -88,44 +86,32 @@ public class ReportingService implements IReportingService {
         return ReportingKpisResponse.builder()
                 .nbClients(nbClients)
                 .nbOpportunites(nbOpportunites)
-                .chiffreAffaires(BigDecimal.ZERO)
+                .chiffreAffaires(chiffreAffaires)
                 .nbDevis(nbDevis)
                 .sparkline(List.of(0, 0, 0, 0, 0, 0, 0))
                 .activiteRecente(activiteRecente)
                 .build();
     }
 
-    // ─────────────────────────────────────────────────────────
-    //  LISTE ACTIVITÉS PAGINÉE
-    // ─────────────────────────────────────────────────────────
-
     @Override
-    public PageResponse<ActiviteResponse> getActivites(String emailProprietaire,
-                                                       int page, int size) {
+    public PageResponse<ActiviteResponse> getActivites(String emailProprietaire, int page, int size) {
         ProprietaireEntreprise proprietaire = chargerProprietaire(emailProprietaire);
-
         Page<ActiviteResponse> result = activiteRepository
-                .findByProprietaireIdOrderByDateCreationDesc(
-                        proprietaire.getId(), PageRequest.of(page, size))
+                .findByProprietaireIdOrderByDateCreationDesc(proprietaire.getId(), PageRequest.of(page, size))
                 .map(a -> {
                     ActiviteResponse response = activiteMapper.toResponse(a);
                     response.setDateRelative(dateRelative(a.getDateCreation()));
                     return response;
                 });
-
         return PageResponse.from(result);
     }
-
-    // ─────────────────────────────────────────────────────────
-    //  HELPERS PRIVÉS
-    // ─────────────────────────────────────────────────────────
 
     private LocalDateTime resolverPeriode(String periode) {
         if (periode == null) return null;
         return switch (periode) {
-            case "AUJOURD_HUI" -> LocalDate.now().atStartOfDay();
-            case "CE_MOIS" -> LocalDate.now().withDayOfMonth(1).atStartOfDay();
-            case "CETTE_ANNEE" -> LocalDate.now().withDayOfYear(1).atStartOfDay();
+            case "AUJOURD_HUI"  -> LocalDate.now().atStartOfDay();
+            case "CE_MOIS"      -> LocalDate.now().withDayOfMonth(1).atStartOfDay();
+            case "CETTE_ANNEE"  -> LocalDate.now().withDayOfYear(1).atStartOfDay();
             default -> null;
         };
     }

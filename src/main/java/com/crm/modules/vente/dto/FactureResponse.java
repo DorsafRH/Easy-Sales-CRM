@@ -21,11 +21,13 @@ public class FactureResponse {
     private BigDecimal montantTtc;
     private String dateEcheance;
     private String dateEmission;
+    private String dateLivraison;
     private String datePaiement;
     private String notes;
     private Long clientId;
     private String clientNom;
     private String devisNumero;
+    private String proprietaireNom;
     private List<LigneFactureResponse> lignes;
     private String dateCreation;
     private String dateRelative;

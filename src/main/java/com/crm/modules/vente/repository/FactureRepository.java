@@ -22,4 +22,8 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
 
     Optional<Facture> findTopByProprietaireIdAndNumeroStartingWithOrderByNumeroDesc(
             Long proprietaireId, String prefixe);
+
+    List<Facture> findByProprietaireIdAndStatut(Long proprietaireId, StatutFacture statut);
+
+    Optional<Facture> findByDevisOrigineId(Long devisId);
 }

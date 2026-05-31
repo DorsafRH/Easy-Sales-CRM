@@ -18,6 +18,7 @@ import com.crm.modules.vente.repository.FactureRepository;
 import com.crm.modules.vente.repository.OpportuniteRepository;
 import com.crm.shared.enums.StatutDevis;
 import com.crm.shared.enums.StatutFacture;
+import com.crm.shared.enums.StatutOpportunite;
 import com.crm.shared.enums.TypeActivite;
 import com.crm.shared.exception.BusinessException;
 import com.crm.shared.exception.ResourceNotFoundException;
@@ -33,7 +34,6 @@ import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.ArrayList;
 import java.util.List;
-
 /**
  * @author Riahi Dorsaf
  */
@@ -56,8 +56,8 @@ public class DevisService implements IDevisService {
     @Transactional(readOnly = true)
     @Override
     public List<DevisResponse> lister(Long proprietaireId, StatutDevis statut) {
-        List<Devis> list = devisRepository.findByProprietaireIdOrderByDateCreationDesc(proprietaireId);
-        return list.stream()
+        return devisRepository.findByProprietaireIdOrderByDateCreationDesc(proprietaireId)
+                .stream()
                 .filter(d -> statut == null || d.getStatut() == statut)
                 .map(this::enrichir)
                 .toList();
@@ -87,78 +87,77 @@ public class DevisService implements IDevisService {
                 .proprietaire(proprietaire)
                 .build();
 
+        // Validation des règles métier si lié à une opportunité
         if (req.getOpportuniteId() != null) {
-            devis.setOpportunite(opportuniteRepository.findByIdAndProprietaireId(req.getOpportuniteId(), proprietaireId)
-                    .orElse(null));
+            var opportunite = opportuniteRepository
+                    .findByIdAndProprietaireId(req.getOpportuniteId(), proprietaireId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Opportunité introuvable"));
+
+            if (opportunite.getStatut() != StatutOpportunite.NEGOCIATION) {
+                throw new BusinessException(
+                        "Un devis ne peut être créé qu'en phase NÉGOCIATION "
+                                + "(statut actuel : " + opportunite.getStatut().name() + ").");
+            }
+            if (devisRepository.existsByOpportuniteIdAndStatutNotIn(
+                    req.getOpportuniteId(), List.of(StatutDevis.REFUSE, StatutDevis.EXPIRE))) {
+                throw new BusinessException(
+                        "Un devis est déjà associé à cette opportunité. "
+                                + "Modifiez-le ou supprimez-le avant d'en créer un nouveau.");
+            }
+            devis.setOpportunite(opportunite);
         }
 
-        // ── Lignes ─────────────────────────────────────────────
         List<LigneDevis> lignes = construireLignes(req, devis, proprietaireId);
         devis.setLignes(lignes);
         devis.recalculerTotaux();
 
         devis = devisRepository.save(devis);
         log.info("[DEVIS] Créé — numero={}", numero);
-
-        activiteService.enregistrer(
-                TypeActivite.DEVIS_CREE, "Devis créé", numero,
+        activiteService.enregistrer(TypeActivite.DEVIS_CREE, "Devis créé", numero,
                 devis.getId(), "DEVIS", null, proprietaire);
-
         return enrichir(devis);
     }
 
     @Override
     public DevisResponse modifier(Long id, DevisRequest req, Long proprietaireId) {
         Devis devis = charger(id, proprietaireId);
-
         if (devis.getStatut() != StatutDevis.BROUILLON) {
             throw new BusinessException("Seuls les devis en brouillon peuvent être modifiés.");
         }
-
         devis.setNotes(req.getNotes());
         if (req.getValiditeJours() != null) devis.setValiditeJours(req.getValiditeJours());
-
         devis.getLignes().clear();
-        List<LigneDevis> lignes = construireLignes(req, devis, proprietaireId);
-        devis.getLignes().addAll(lignes);
+        devis.getLignes().addAll(construireLignes(req, devis, proprietaireId));
         devis.recalculerTotaux();
-
-        devis = devisRepository.save(devis);
-        return enrichir(devis);
+        return enrichir(devisRepository.save(devis));
     }
 
     @Override
     public DevisResponse changerStatut(Long id, StatutDevis statut, Long proprietaireId) {
         Devis devis = charger(id, proprietaireId);
         validerTransitionDevis(devis.getStatut(), statut);
-
         devis.setStatut(statut);
         devis = devisRepository.save(devis);
 
         TypeActivite type = switch (statut) {
             case ENVOYE -> TypeActivite.DEVIS_ENVOYE;
             case ACCEPTE -> TypeActivite.DEVIS_ACCEPTE;
-            case REFUSE -> TypeActivite.DEVIS_REFUSE;
-            default -> TypeActivite.DEVIS_CREE;
+            case REFUSE  -> TypeActivite.DEVIS_REFUSE;
+            default      -> TypeActivite.DEVIS_CREE;
         };
-
-        activiteService.enregistrer(
-                type, "Devis " + statut.name().toLowerCase(), devis.getNumero(),
+        activiteService.enregistrer(type, "Devis " + statut.name().toLowerCase(), devis.getNumero(),
                 devis.getId(), "DEVIS", null, devis.getProprietaire());
-
         return enrichir(devis);
     }
 
     @Override
     public FactureResponse convertirEnFacture(Long id, Long proprietaireId) {
         Devis devis = charger(id, proprietaireId);
-
         if (devis.getStatut() != StatutDevis.ACCEPTE) {
             throw new BusinessException("Seuls les devis acceptés peuvent être convertis en facture.");
         }
 
         String numeroFacture = genererNumero(proprietaireId, "FA");
-
         Facture facture = Facture.builder()
                 .numero(numeroFacture)
                 .statut(StatutFacture.BROUILLON)
@@ -172,7 +171,6 @@ public class DevisService implements IDevisService {
                 .proprietaire(devis.getProprietaire())
                 .build();
 
-        // ── Copie des lignes ─────────────────────────────────
         List<LigneFacture> lignesFacture = devis.getLignes().stream()
                 .map(l -> LigneFacture.builder()
                         .facture(facture)
@@ -190,11 +188,8 @@ public class DevisService implements IDevisService {
 
         facture.setLignes(new ArrayList<>(lignesFacture));
         Facture saved = factureRepository.save(facture);
-
-        activiteService.enregistrer(
-                TypeActivite.FACTURE_CREEE, "Facture créée", numeroFacture,
+        activiteService.enregistrer(TypeActivite.FACTURE_CREEE, "Facture créée", numeroFacture,
                 saved.getId(), "FACTURE", null, devis.getProprietaire());
-
         log.info("[DEVIS] Converti en facture — devisId={} factureId={}", id, saved.getId());
         return enrichirFacture(saved);
     }
@@ -209,7 +204,7 @@ public class DevisService implements IDevisService {
         log.info("[DEVIS] Supprimé — id={}", id);
     }
 
-    // ─────────────────────────────────────────────────────────
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private Devis charger(Long id, Long proprietaireId) {
         return devisRepository.findByIdAndProprietaireId(id, proprietaireId)
@@ -220,7 +215,6 @@ public class DevisService implements IDevisService {
         return req.getLignes().stream().map(lr -> {
             var produit = produitRepository.findByIdAndProprietaireId(lr.getProduitId(), proprietaireId)
                     .orElseThrow(() -> new ResourceNotFoundException("Produit introuvable : " + lr.getProduitId()));
-
             LigneDevis ligne = LigneDevis.builder()
                     .devis(devis)
                     .produit(produit)
@@ -231,7 +225,6 @@ public class DevisService implements IDevisService {
                             : (produit.getTauxTVA() != null ? produit.getTauxTVA() : BigDecimal.ZERO))
                     .remise(lr.getRemise() != null ? lr.getRemise() : BigDecimal.ZERO)
                     .build();
-
             ligne.calculer();
             return ligne;
         }).toList();
@@ -240,18 +233,17 @@ public class DevisService implements IDevisService {
     private void validerTransitionDevis(StatutDevis actuel, StatutDevis nouveau) {
         boolean valide = switch (actuel) {
             case BROUILLON -> nouveau == StatutDevis.ENVOYE;
-            case ENVOYE ->
-                    nouveau == StatutDevis.ACCEPTE || nouveau == StatutDevis.REFUSE || nouveau == StatutDevis.EXPIRE;
+            case ENVOYE    -> nouveau == StatutDevis.ACCEPTE
+                    || nouveau == StatutDevis.REFUSE
+                    || nouveau == StatutDevis.EXPIRE;
             default -> false;
         };
-        if (!valide) throw new BusinessException(
-                "Transition invalide : " + actuel + " → " + nouveau);
+        if (!valide) throw new BusinessException("Transition invalide : " + actuel + " → " + nouveau);
     }
 
     private String genererNumero(Long proprietaireId, String prefixe) {
         String annee = String.valueOf(Year.now().getValue());
         String pref = prefixe + "-" + annee + "-";
-
         if ("DV".equals(prefixe)) {
             return devisRepository
                     .findTopByProprietaireIdAndNumeroStartingWithOrderByNumeroDesc(proprietaireId, pref)

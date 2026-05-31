@@ -1,8 +1,11 @@
 package com.crm.modules.vente.service;
 
 import com.crm.modules.client.entity.Client;
+import com.crm.modules.client.entity.ClientEntreprise;
 import com.crm.modules.client.entity.ClientIndividuel;
 import com.crm.modules.client.repository.ClientRepository;
+import com.crm.modules.contact.entity.Contact;
+import com.crm.modules.contact.repository.ContactRepository;
 import com.crm.modules.reporting.service.IActiviteService;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
 import com.crm.modules.utilisateur.repository.ProprietaireRepository;
@@ -41,6 +44,7 @@ public class LeadService implements ILeadService {
     private final LeadRepository leadRepository;
     private final OpportuniteRepository opportuniteRepository;
     private final ClientRepository clientRepository;
+    private final ContactRepository contactRepository;          // ← AJOUT
     private final ProprietaireRepository proprietaireRepository;
     private final LeadMapper leadMapper;
     private final OpportuniteMapper opportuniteMapper;
@@ -191,53 +195,15 @@ public class LeadService implements ILeadService {
             throw new BusinessException("Ce lead a déjà été converti.");
         }
 
-        // ── Résolution du client ──────────────────────────────
-        Client client;
-        if (clientExistantId != null) {
-            client = chargerClient(clientExistantId, proprietaireId);
-        } else if (creerNouveauClient) {
-            // Création automatique d'un ClientIndividuel depuis le lead
-            ClientIndividuel nouveau = new ClientIndividuel();
-            String[] parts = lead.getNom().trim().split("\\s+", 2);
-            nouveau.setPrenom(parts.length > 1 ? parts[0] : lead.getNom());
-            nouveau.setNom(parts.length > 1 ? parts[1] : "");
-            nouveau.setEmail(lead.getEmail());
-            nouveau.setTelephone(lead.getTelephone());
-            nouveau.setProprietaire(proprietaire);
-            nouveau.recalculerNomAffichage();
-            client = clientRepository.save(nouveau);
-            log.info("[LEAD] Nouveau client créé depuis lead — clientId={}", client.getId());
-        } else {
-            throw new BusinessException("Veuillez sélectionner un client ou activer la création automatique.");
-        }
+        Client client = resoudreClient(lead, clientExistantId, creerNouveauClient,
+                proprietaireId, proprietaire);
+        Opportunite opportunite = creerOpportunite(lead, client, titreOpportunite, proprietaire);
 
-        // ── Création de l'opportunité ─────────────────────────
-        String titre = (titreOpportunite != null && !titreOpportunite.isBlank())
-                ? titreOpportunite
-                : "Opportunité — " + lead.getNom();
-
-        Opportunite opportunite = Opportunite.builder()
-                .titre(titre)
-                .statut(StatutOpportunite.PROSPECTION)
-                .client(client)
-                .lead(lead)
-                .proprietaire(proprietaire)
-                .build();
-
-        opportunite = opportuniteRepository.save(opportunite);
-
-        // ── MAJ lead → CONVERTI ───────────────────────────────
         lead.setStatut(StatutLead.CONVERTI);
         lead.setClient(client);
         leadRepository.save(lead);
 
-        activiteService.enregistrer(
-                TypeActivite.LEAD_CONVERTI, "Lead converti en opportunité", lead.getNom(),
-                lead.getId(), "LEAD", null, proprietaire);
-        activiteService.enregistrer(
-                TypeActivite.OPPORTUNITE_CREEE, "Opportunité créée", opportunite.getTitre(),
-                opportunite.getId(), "OPPORTUNITE", null, proprietaire);
-
+        enregistrerActivitesConversion(lead, opportunite, proprietaire);
         log.info("[LEAD] Converti — leadId={} opportuniteId={}", leadId, opportunite.getId());
         return opportuniteMapper.toResponse(opportunite);
     }
@@ -254,7 +220,103 @@ public class LeadService implements ILeadService {
     }
 
     // ─────────────────────────────────────────────────────────
-    //  HELPERS PRIVÉS
+    //  HELPERS PRIVÉS — RÉSOLUTION CLIENT
+    // ─────────────────────────────────────────────────────────
+
+    private Client resoudreClient(Lead lead, Long clientExistantId,
+                                  boolean creerNouveauClient,
+                                  Long proprietaireId,
+                                  ProprietaireEntreprise proprietaire) {
+        if (clientExistantId != null) {
+            return chargerClient(clientExistantId, proprietaireId);
+        }
+        if (!creerNouveauClient) {
+            throw new BusinessException(
+                    "Veuillez sélectionner un client ou activer la création automatique.");
+        }
+        boolean avecEntreprise = lead.getEntreprise() != null
+                && !lead.getEntreprise().isBlank();
+        return avecEntreprise
+                ? creerClientEntrepriseDepuisLead(lead, proprietaire)
+                : creerClientIndividuelDepuisLead(lead, proprietaire);
+    }
+
+    private Client creerClientIndividuelDepuisLead(Lead lead,
+                                                   ProprietaireEntreprise proprietaire) {
+        ClientIndividuel client = new ClientIndividuel();
+        String[] parts = lead.getNom().trim().split("\\s+", 2);
+        client.setPrenom(parts.length > 1 ? parts[0] : lead.getNom());
+        client.setNom(parts.length > 1 ? parts[1] : "");
+        client.setEmail(lead.getEmail());
+        client.setTelephone(lead.getTelephone());
+        client.setProprietaire(proprietaire);
+        client.recalculerNomAffichage();
+        Client saved = clientRepository.save(client);
+        log.info("[LEAD] Client individuel créé depuis lead — clientId={}", saved.getId());
+        return saved;
+    }
+
+    private Client creerClientEntrepriseDepuisLead(Lead lead,
+                                                   ProprietaireEntreprise proprietaire) {
+        ClientEntreprise entreprise = new ClientEntreprise();
+        entreprise.setRaisonSociale(lead.getEntreprise());
+        entreprise.setEmail(lead.getEmail());
+        entreprise.setTelephone(lead.getTelephone());
+        entreprise.setProprietaire(proprietaire);
+        entreprise.recalculerNomAffichage();
+        Client client = clientRepository.save(entreprise);
+        log.info("[LEAD] Client entreprise créé depuis lead — clientId={}", client.getId());
+        creerContactPrincipalDepuisLead(lead, client);
+        return client;
+    }
+
+    private void creerContactPrincipalDepuisLead(Lead lead, Client client) {
+        String[] parts = lead.getNom().trim().split("\\s+", 2);
+        Contact contact = Contact.builder()
+                .nom(parts.length > 1 ? parts[1] : lead.getNom())
+                .prenom(parts.length > 1 ? parts[0] : null)
+                .email(lead.getEmail())
+                .telephone(lead.getTelephone())
+                .poste(lead.getPoste())
+                .isPrincipal(true)
+                .client(client)
+                .build();
+        Contact saved = contactRepository.save(contact);
+        log.info("[LEAD] Contact principal créé pour entreprise — contactId={}", saved.getId());
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  HELPERS PRIVÉS — CRÉATION OPPORTUNITÉ + ACTIVITÉS
+    // ─────────────────────────────────────────────────────────
+
+    private Opportunite creerOpportunite(Lead lead, Client client,
+                                         String titreOpportunite,
+                                         ProprietaireEntreprise proprietaire) {
+        String titre = (titreOpportunite != null && !titreOpportunite.isBlank())
+                ? titreOpportunite
+                : "Opportunité — " + lead.getNom();
+        Opportunite opportunite = Opportunite.builder()
+                .titre(titre)
+                .statut(StatutOpportunite.PROSPECTION)
+                .client(client)
+                .lead(lead)
+                .proprietaire(proprietaire)
+                .build();
+        return opportuniteRepository.save(opportunite);
+    }
+
+    private void enregistrerActivitesConversion(Lead lead, Opportunite opportunite,
+                                                ProprietaireEntreprise proprietaire) {
+        activiteService.enregistrer(
+                TypeActivite.LEAD_CONVERTI, "Lead converti en opportunité", lead.getNom(),
+                lead.getId(), "LEAD", null, proprietaire);
+        activiteService.enregistrer(
+                TypeActivite.OPPORTUNITE_CREEE, "Opportunité créée", opportunite.getTitre(),
+                opportunite.getId(), "OPPORTUNITE", null, proprietaire);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  HELPERS PRIVÉS — CHARGEMENT + SCORING
     // ─────────────────────────────────────────────────────────
 
     private Lead charger(Long id, Long proprietaireId) {

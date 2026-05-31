@@ -48,6 +48,7 @@ public enum TypeActivite {
     // ── Sprint 3 — Factures ───────────────────────────────────
     FACTURE_CREEE,
     FACTURE_EMISE,
+    FACTURE_LIVREE,
     FACTURE_PAYEE,
     FACTURE_ANNULEE,
 

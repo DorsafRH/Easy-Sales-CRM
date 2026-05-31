@@ -89,6 +89,9 @@ public class Facture {
     @Column(name = "date_emission")
     private LocalDateTime dateEmission;
 
+    @Column(name = "date_livraison")
+    private LocalDateTime dateLivraison;
+
     @Column(name = "date_paiement")
     private LocalDateTime datePaiement;
 
