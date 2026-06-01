@@ -1,10 +1,15 @@
 package com.crm.modules.reporting.controller;
 
 import com.crm.modules.reporting.dto.ActiviteResponse;
+import com.crm.modules.reporting.dto.CaMensuelDto;
 import com.crm.modules.reporting.dto.ReportingKpisResponse;
+import com.crm.modules.reporting.dto.StatsVentesResponse;
 import com.crm.modules.reporting.service.IReportingService;
 import com.crm.shared.response.ApiResponse;
 import com.crm.shared.response.PageResponse;
+
+import java.math.BigDecimal;
+import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +49,45 @@ public class ReportingController {
         return ResponseEntity.ok(ApiResponse.success(
                 reportingService.getKpis(userDetails.getUsername(), periode),
                 "KPIs récupérés."));
+    }
+
+    @Operation(
+            summary = "Statistiques de vente avancées",
+            description = "Leads actifs, taux de conversion, valeur pipeline, panier moyen, répartition et top 3 opportunités."
+    )
+    @GetMapping("/stats-ventes")
+    public ResponseEntity<ApiResponse<StatsVentesResponse>> getStatsVentes(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(ApiResponse.success(
+                reportingService.getStatsVentes(userDetails.getUsername()),
+                "Statistiques de vente récupérées."));
+    }
+
+    @Operation(
+            summary = "Chiffre d'affaires du mois précédent",
+            description = "Retourne la somme TTC des factures PAYÉE du mois calendaire précédent."
+    )
+    @GetMapping("/ca-mois-precedent")
+    public ResponseEntity<ApiResponse<BigDecimal>> getCAMoisPrecedent(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(ApiResponse.success(
+                reportingService.getChiffreAffairesMoisPrecedent(userDetails.getUsername()),
+                "CA mois précédent récupéré."));
+    }
+
+    @Operation(
+            summary = "CA mensuel sur 12 mois glissants",
+            description = "Retourne la somme TTC des factures PAYÉE pour chacun des 12 derniers mois."
+    )
+    @GetMapping("/ca-par-mois")
+    public ResponseEntity<ApiResponse<List<CaMensuelDto>>> getCaParMois(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        return ResponseEntity.ok(ApiResponse.success(
+                reportingService.getCaParMois(userDetails.getUsername()),
+                "CA par mois récupéré."));
     }
 
     @Operation(

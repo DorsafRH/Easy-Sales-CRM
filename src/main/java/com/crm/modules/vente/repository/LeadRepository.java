@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,4 +29,11 @@ public interface LeadRepository
     long countByProprietaireId(Long proprietaireId);
 
     long countByProprietaireIdAndStatut(Long proprietaireId, StatutLead statut);
+
+    /**
+     * Compte les leads dont le statut n'est PAS dans la liste fournie.
+     * Utilisé pour comptabiliser les leads "actifs" (hors CONVERTI et PERDU).
+     */
+    long countByProprietaireIdAndStatutNotIn(
+            Long proprietaireId, Collection<StatutLead> statuts);
 }

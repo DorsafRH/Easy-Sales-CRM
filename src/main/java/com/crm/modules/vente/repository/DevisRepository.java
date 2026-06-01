@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 /**
@@ -27,4 +29,18 @@ public interface DevisRepository
     List<Devis> findByOpportuniteIdAndProprietaireId(Long opportuniteId, Long proprietaireId);
 
     boolean existsByOpportuniteIdAndStatutNotIn(Long opportuniteId, List<StatutDevis> statuts);
+
+    /**
+     * Compte les devis d'un propriétaire créés dans une fenêtre temporelle.
+     * Utilisé par ReportingService pour les KPIs filtrés par période.
+     */
+    long countByProprietaireIdAndDateCreationBetween(
+            Long proprietaireId, LocalDateTime debut, LocalDateTime fin);
+
+    /**
+     * Compte les devis dont le statut est dans la liste fournie.
+     * Utilisé pour calculer le taux d'acceptation (dénominateur = non-BROUILLON).
+     */
+    long countByProprietaireIdAndStatutIn(
+            Long proprietaireId, Collection<StatutDevis> statuts);
 }

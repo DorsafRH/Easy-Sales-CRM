@@ -1,8 +1,13 @@
 package com.crm.modules.reporting.service;
 
 import com.crm.modules.reporting.dto.ActiviteResponse;
+import com.crm.modules.reporting.dto.CaMensuelDto;
 import com.crm.modules.reporting.dto.ReportingKpisResponse;
+import com.crm.modules.reporting.dto.StatsVentesResponse;
 import com.crm.shared.response.PageResponse;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * Contrat du service de reporting.
@@ -19,6 +24,29 @@ public interface IReportingService {
      * @param periode           période de filtrage : AUJOURD_HUI | CE_MOIS | CETTE_ANNEE
      */
     ReportingKpisResponse getKpis(String emailProprietaire, String periode);
+
+    /**
+     * Retourne le chiffre d'affaires (factures PAYÉE) du mois précédent.
+     *
+     * @param emailProprietaire email extrait du token JWT
+     */
+    BigDecimal getChiffreAffairesMoisPrecedent(String emailProprietaire);
+
+    /**
+     * Retourne les statistiques de vente avancées pour le dashboard.
+     * Inclut : leads actifs, taux de conversion, valeur pipeline,
+     * panier moyen, répartition opportunités, top 3 opportunités.
+     *
+     * @param emailProprietaire email extrait du token JWT
+     */
+    StatsVentesResponse getStatsVentes(String emailProprietaire);
+
+    /**
+     * Retourne le CA mensuel sur les 12 derniers mois glissants (factures PAYÉE).
+     *
+     * @param emailProprietaire email extrait du token JWT
+     */
+    List<CaMensuelDto> getCaParMois(String emailProprietaire);
 
     /**
      * Retourne la liste paginée de toutes les activités du propriétaire.

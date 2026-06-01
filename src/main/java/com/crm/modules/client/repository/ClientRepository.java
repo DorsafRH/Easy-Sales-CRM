@@ -61,4 +61,11 @@ public interface ClientRepository
      */
     long countByProprietaireIdAndIsDeletedFalseAndStatutAndDateCreationAfter(
             Long proprietaireId, String statut, LocalDateTime since);
+
+    /**
+     * Compte les clients d'un propriétaire créés dans une fenêtre temporelle.
+     * Utilisé par ReportingService pour les KPIs filtrés par période.
+     */
+    long countByProprietaireIdAndDateCreationBetween(
+            Long proprietaireId, LocalDateTime debut, LocalDateTime fin);
 }

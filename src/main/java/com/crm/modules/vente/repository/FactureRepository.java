@@ -5,6 +5,7 @@ import com.crm.shared.enums.StatutFacture;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,4 +27,12 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
     List<Facture> findByProprietaireIdAndStatut(Long proprietaireId, StatutFacture statut);
 
     Optional<Facture> findByDevisOrigineId(Long devisId);
+
+    /**
+     * Retourne les factures d'un propriétaire avec un statut donné et datePaiement
+     * dans une fenêtre temporelle — utilisé pour calculer le CA sur une période.
+     */
+    List<Facture> findByProprietaireIdAndStatutAndDatePaiementBetween(
+            Long proprietaireId, StatutFacture statut,
+            LocalDateTime debut, LocalDateTime fin);
 }
