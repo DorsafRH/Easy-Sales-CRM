@@ -27,18 +27,22 @@ spring:
           auth: true
           starttls:
             enable: true
+
 server:
   port: 8080
   servlet:
     context-path: /api
+
 jwt:
   secret: ${JWT_SECRET}
   expiration: 86400000
   refresh-expiration: 604800000
+
 logging:
   level:
     com.crm: DEBUG
     org.springframework.security: DEBUG
+
 springdoc:
   api-docs:
     path: /v3/api-docs
@@ -46,9 +50,29 @@ springdoc:
     path: /swagger-ui.html
     try-it-out-enabled: true
   packages-to-scan: com.crm
+
 admin:
   default:
     email: ${ADMIN_EMAIL:admin@easysalescrm.com}
     password: ${ADMIN_PASSWORD}
     nom: ${ADMIN_NOM:Super}
     prenom: ${ADMIN_PRENOM:Admin}
+
+# ===== SPRINT 4 - MARKETING IA =====
+groq:
+  api:
+    key: ${GROQ_API_KEY}
+    url: ${GROQ_API_URL:https://api.groq.com/openai/v1/chat/completions}
+    model: ${GROQ_MODEL:llama-3.1-8b-instant}
+
+meta:
+  oauth:
+    app-id: ${META_APP_ID}
+    app-secret: ${META_APP_SECRET}
+    redirect-uri: ${META_REDIRECT_URI}
+    graph-api-version: v21.0
+
+n8n:
+  webhook:
+    url: ${N8N_WEBHOOK_URL}
+    callback-secret: ${N8N_CALLBACK_SECRET}

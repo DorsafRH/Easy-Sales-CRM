@@ -25,6 +25,8 @@ public class DevisResponse {
     private String clientNom;
     private Long opportuniteId;
     private String opportuniteTitre;
+    /** {@code true} si une facture a déjà été générée depuis ce devis — masque le bouton de conversion. */
+    private boolean dejaConverti;
     private List<LigneDevisResponse> lignes;
     private String dateCreation;
     private String dateModification;

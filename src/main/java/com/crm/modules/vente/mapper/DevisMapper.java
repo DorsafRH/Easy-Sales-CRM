@@ -20,6 +20,7 @@ public interface DevisMapper {
     @Mapping(target = "dateCreation", expression = "java(d.getDateCreation()    != null ? d.getDateCreation().toString()    : null)")
     @Mapping(target = "dateModification", expression = "java(d.getDateModification()!= null ? d.getDateModification().toString() : null)")
     @Mapping(target = "dateRelative", ignore = true)
+    @Mapping(target = "dejaConverti", ignore = true)
     DevisResponse toResponse(Devis d);
 
     @Mapping(target = "produitId", source = "produit.id")

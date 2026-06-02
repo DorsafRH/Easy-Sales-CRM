@@ -156,6 +156,9 @@ public class DevisService implements IDevisService {
         if (devis.getStatut() != StatutDevis.ACCEPTE) {
             throw new BusinessException("Seuls les devis acceptés peuvent être convertis en facture.");
         }
+        if (factureRepository.existsByDevisOrigineId(devis.getId())) {
+            throw new BusinessException("Ce devis a déjà été converti en facture.");
+        }
 
         String numeroFacture = genererNumero(proprietaireId, "FA");
         Facture facture = Facture.builder()
@@ -263,7 +266,13 @@ public class DevisService implements IDevisService {
         DevisResponse r = devisMapper.toResponse(d);
         r.setLignes(d.getLignes().stream().map(devisMapper::toLigneResponse).toList());
         r.setDateRelative(dateRelative(d.getDateCreation()));
+        r.setDejaConverti(estDejaConverti(d));
         return r;
+    }
+
+    /** Un devis est « déjà converti » dès qu'une facture en est issue : le bouton de conversion doit alors être masqué. */
+    private boolean estDejaConverti(Devis devis) {
+        return factureRepository.existsByDevisOrigineId(devis.getId());
     }
 
     private FactureResponse enrichirFacture(Facture f) {

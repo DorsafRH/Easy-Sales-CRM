@@ -3,6 +3,7 @@ package com.crm.modules.vente.service;
 import com.crm.modules.catalogue.entity.Produit;
 import com.crm.modules.reporting.service.IActiviteService;
 import com.crm.modules.vente.dto.FactureResponse;
+import com.crm.modules.vente.entity.Devis;
 import com.crm.modules.vente.entity.Facture;
 import com.crm.modules.vente.entity.LigneFacture;
 import com.crm.modules.vente.entity.Opportunite;
@@ -103,13 +104,44 @@ public class FactureService implements IFactureService {
     }
 
     // ── Opportunité → GAGNEE après paiement ───────────────────────────────
-    private void mettreAJourOpportuniteApresPaiement(Facture facture) {
-        if (facture.getDevisOrigine() == null) return;
-        Opportunite opportunite = facture.getDevisOrigine().getOpportunite();
-        if (opportunite == null) return;
-        if (opportunite.getStatut() == StatutOpportunite.GAGNEE
-                || opportunite.getStatut() == StatutOpportunite.PERDUE) return;
 
+    /**
+     * Fait passer à GAGNEE l'opportunité reliée à la facture une fois celle-ci payée.
+     * <p>Navigation du lien : {@code Facture → devisOrigine → opportunite}. L'opportunité
+     * est rechargée par son id afin d'obtenir une entité managée fiable (et non un proxy
+     * paresseux potentiellement non initialisé), puis sauvegardée.</p>
+     * <p>Cette mise à jour est best-effort : l'appelant l'encapsule dans un try/catch et
+     * journalise en {@code log.warn} sans jamais bloquer le paiement.</p>
+     *
+     * @param facture facture venant de passer au statut {@code PAYEE}
+     */
+    private void mettreAJourOpportuniteApresPaiement(Facture facture) {
+        Long opportuniteId = idOpportuniteLiee(facture);
+        if (opportuniteId == null) return;
+
+        Opportunite opportunite = opportuniteRepository
+                .findByIdAndProprietaireId(opportuniteId, facture.getProprietaire().getId())
+                .orElse(null);
+        if (opportunite == null || estDejaCloturee(opportunite)) return;
+
+        marquerGagnee(opportunite);
+    }
+
+    /** Récupère l'id de l'opportunité reliée via le devis d'origine, ou {@code null}. */
+    private Long idOpportuniteLiee(Facture facture) {
+        Devis devis = facture.getDevisOrigine();
+        if (devis == null || devis.getOpportunite() == null) return null;
+        return devis.getOpportunite().getId();
+    }
+
+    /** Une opportunité GAGNEE ou PERDUE est clôturée : son statut ne doit plus changer. */
+    private boolean estDejaCloturee(Opportunite opportunite) {
+        StatutOpportunite statut = opportunite.getStatut();
+        return statut == StatutOpportunite.GAGNEE || statut == StatutOpportunite.PERDUE;
+    }
+
+    /** Passe l'opportunité à GAGNEE, la persiste et journalise l'activité associée. */
+    private void marquerGagnee(Opportunite opportunite) {
         opportunite.setStatut(StatutOpportunite.GAGNEE);
         opportuniteRepository.save(opportunite);
 

@@ -29,6 +29,13 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
     Optional<Facture> findByDevisOrigineId(Long devisId);
 
     /**
+     * Indique si une facture a déjà été générée à partir du devis donné.
+     * Sert à masquer le bouton « Convertir en facture » côté mobile et à
+     * empêcher toute reconversion côté serveur.
+     */
+    boolean existsByDevisOrigineId(Long devisId);
+
+    /**
      * Retourne les factures d'un propriétaire avec un statut donné et datePaiement
      * dans une fenêtre temporelle — utilisé pour calculer le CA sur une période.
      */
