@@ -98,6 +98,17 @@ public class SecurityConfig {
                         .requestMatchers("/reunions/**")
                         .hasAuthority("ROLE_PROPRIETAIRE")
 
+                        // ── Marketing — Sprint 4 ──────────────────────────
+                        // Callbacks publics (appelés par Meta / N8N, sans JWT)
+                        .requestMatchers(HttpMethod.GET, "/marketing/oauth/callback")
+                        .permitAll()
+
+                        .requestMatchers(HttpMethod.POST, "/marketing/n8n/callback")
+                        .permitAll()
+
+                        .requestMatchers("/marketing/**")
+                        .hasAuthority("ROLE_PROPRIETAIRE")
+
 
                         // ── Super Admin ───────────────────────────────────
                         .requestMatchers(HttpMethod.GET, "/admin/entreprises/en-attente")
