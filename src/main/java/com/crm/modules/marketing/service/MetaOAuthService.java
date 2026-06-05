@@ -33,8 +33,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MetaOAuthService {
 
     private static final String SCOPES =
-            "pages_manage_posts,pages_read_engagement,instagram_content_publish,"
-                    + "instagram_basic,email,public_profile";
+            "pages_manage_posts,pages_read_engagement,pages_show_list,"
+                    + "instagram_content_publish,instagram_basic";
 
     private final RestClient restClient = RestClient.create();
     private final Map<String, Long> stateVersProprietaire = new ConcurrentHashMap<>();
