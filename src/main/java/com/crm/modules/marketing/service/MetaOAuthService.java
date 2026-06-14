@@ -7,6 +7,8 @@ import com.crm.modules.utilisateur.repository.ProprietaireRepository;
 import com.crm.shared.enums.TypeReseau;
 import com.crm.shared.exception.BusinessException;
 import com.crm.shared.exception.ResourceNotFoundException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -37,6 +39,7 @@ public class MetaOAuthService {
                     + "instagram_content_publish,instagram_basic";
 
     private final RestClient restClient = RestClient.create();
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, Long> stateVersProprietaire = new ConcurrentHashMap<>();
 
     private final CompteSocialConnecteRepository compteRepository;
@@ -63,7 +66,7 @@ public class MetaOAuthService {
     public String construireUrlOAuth(Long proprietaireId) {
         String state = UUID.randomUUID().toString();
         stateVersProprietaire.put(state, proprietaireId);
-        return UriComponentsBuilder
+        String url = UriComponentsBuilder
                 .fromHttpUrl("https://www.facebook.com/" + graphApiVersion + "/dialog/oauth")
                 .queryParam("client_id", appId)
                 .queryParam("redirect_uri", redirectUri)
@@ -71,6 +74,8 @@ public class MetaOAuthService {
                 .queryParam("response_type", "code")
                 .queryParam("state", state)
                 .build().toUriString();
+        log.info("[META] URL OAuth générée — appId={} | redirect_uri={}", appId, redirectUri);
+        return url;
     }
 
     public String traiterCallback(String code, String state) {
@@ -145,8 +150,11 @@ public class MetaOAuthService {
 
     private Map<?, ?> envoyerGet(String url) {
         try {
-            return restClient.get().uri(URI.create(url)).retrieve().body(Map.class);
-        } catch (RestClientException e) {
+            // L'API Graph renvoie parfois Content-Type "text/javascript" : on lit le corps
+            // brut en String puis on le parse en JSON pour ne pas dépendre de l'en-tête.
+            String corps = restClient.get().uri(URI.create(url)).retrieve().body(String.class);
+            return objectMapper.readValue(corps, Map.class);
+        } catch (RestClientException | JsonProcessingException e) {
             log.error("[META] Erreur appel API : {}", e.getMessage());
             throw new BusinessException("Erreur lors de l'appel à l'API Meta : " + e.getMessage());
         }

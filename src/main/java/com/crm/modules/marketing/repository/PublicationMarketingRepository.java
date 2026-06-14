@@ -5,6 +5,7 @@ import com.crm.shared.enums.StatutPublication;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,4 +26,7 @@ public interface PublicationMarketingRepository
             Long proprietaireId, StatutPublication statut);
 
     long countByProprietaireIdAndStatut(Long proprietaireId, StatutPublication statut);
+
+    List<PublicationMarketing> findByStatutAndDateProgrammationLessThanEqual(
+            StatutPublication statut, LocalDateTime dateProgrammation);
 }

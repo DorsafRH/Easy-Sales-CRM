@@ -1,7 +1,6 @@
 package com.crm.modules.marketing.service;
 
 import com.crm.modules.marketing.dto.request.GenererContenuRequestDTO;
-import com.crm.modules.marketing.dto.request.N8NCallbackDTO;
 import com.crm.modules.marketing.dto.request.PublicationRequestDTO;
 import com.crm.modules.marketing.dto.response.CompteSocialResponseDTO;
 import com.crm.modules.marketing.dto.response.GenererContenuResponseDTO;
@@ -68,13 +67,20 @@ public interface IMarketingService {
     void supprimerPublication(Long id, Long proprietaireId);
 
     /**
-     * Envoie une publication au workflow N8N pour diffusion sur les réseaux ciblés.
+     * Publie immédiatement une publication sur ses réseaux ciblés (API Graph),
+     * puis met à jour son statut selon le résultat des diffusions.
      *
      * @param id            identifiant de la publication
      * @param proprietaireId identifiant du propriétaire courant
-     * @return la publication passée à l'état EN_COURS
+     * @return la publication après diffusion (PUBLIEE, ECHEC…)
      */
     PublicationResponseDTO publier(Long id, Long proprietaireId);
+
+    /**
+     * Publie les publications PROGRAMMEE dont la date de programmation est échue.
+     * Appelée périodiquement par le scheduler, hors contexte propriétaire.
+     */
+    void publierPublicationsProgrammees();
 
     /**
      * Annule une publication et ses diffusions.
@@ -100,11 +106,4 @@ public interface IMarketingService {
      * @param proprietaireId identifiant du propriétaire courant
      */
     void deconnecterCompte(Long id, Long proprietaireId);
-
-    /**
-     * Traite le callback de statut envoyé par le workflow N8N après publication.
-     *
-     * @param callback résultat de la diffusion (statut, id externe, url, erreur)
-     */
-    void traiterCallbackN8N(N8NCallbackDTO callback);
 }

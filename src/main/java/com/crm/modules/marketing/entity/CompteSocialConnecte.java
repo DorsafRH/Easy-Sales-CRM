@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 /**
  * Compte de réseau social connecté par un propriétaire via OAuth Meta.
- * Stocke le token de publication utilisé par le workflow N8N.
+ * Stocke le token de page utilisé pour publier via l'API Graph.
  *
  * @author Riahi Dorsaf
  */

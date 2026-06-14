@@ -71,8 +71,3 @@ meta:
     app-secret: ${META_APP_SECRET}
     redirect-uri: ${META_REDIRECT_URI}
     graph-api-version: v21.0
-
-n8n:
-  webhook:
-    url: ${N8N_WEBHOOK_URL}
-    callback-secret: ${N8N_CALLBACK_SECRET}

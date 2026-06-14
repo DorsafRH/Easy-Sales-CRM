@@ -1,7 +1,6 @@
 package com.crm.modules.marketing.controller;
 
 import com.crm.modules.marketing.dto.request.GenererContenuRequestDTO;
-import com.crm.modules.marketing.dto.request.N8NCallbackDTO;
 import com.crm.modules.marketing.dto.request.PublicationRequestDTO;
 import com.crm.modules.marketing.dto.response.CompteSocialResponseDTO;
 import com.crm.modules.marketing.dto.response.GenererContenuResponseDTO;
@@ -16,7 +15,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -41,9 +39,6 @@ public class MarketingController {
 
     private final IMarketingService marketingService;
     private final MetaOAuthService metaOAuthService;
-
-    @Value("${n8n.webhook.callback-secret}")
-    private String n8nCallbackSecret;
 
     @Operation(summary = "Générer du contenu via IA",
             description = "Pattern Generator → Critic via l'API Groq")
@@ -149,10 +144,10 @@ public class MarketingController {
     }
 
     @Operation(summary = "Publier une publication",
-            description = "Envoie la publication au workflow N8N pour diffusion")
+            description = "Publie immédiatement la publication sur ses réseaux via l'API Graph")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "200", description = "Publication envoyée"),
+                    responseCode = "200", description = "Publication diffusée"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "400", description = "Publication non publiable"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -165,7 +160,7 @@ public class MarketingController {
             @AuthenticationPrincipal ProprietaireEntreprise proprietaire) {
         return ResponseEntity.ok(ApiResponse.success(
                 marketingService.publier(id, proprietaire.getId()),
-                "Publication envoyée pour diffusion."));
+                "Publication diffusée."));
     }
 
     @Operation(summary = "Annuler une publication")
@@ -245,28 +240,5 @@ public class MarketingController {
         String resultat = metaOAuthService.traiterCallback(code, state);
         return ResponseEntity.ok("<html><body><h2>" + resultat
                 + "</h2><p>Vous pouvez fermer cette fenêtre et revenir à l'application.</p></body></html>");
-    }
-
-    @Operation(summary = "Callback statut N8N",
-            description = "Endpoint public appelé par N8N — protégé par un secret d'en-tête")
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "200", description = "Statut traité"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "401", description = "Secret invalide"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(
-                    responseCode = "404", description = "Diffusion introuvable")
-    })
-    @PostMapping("/n8n/callback")
-    public ResponseEntity<ApiResponse<Void>> callbackN8N(
-            @Parameter(description = "Secret partagé de validation N8N")
-            @RequestHeader("X-Callback-Secret") String secret,
-            @RequestBody N8NCallbackDTO callback) {
-        if (!n8nCallbackSecret.equals(secret)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.error("Secret de callback invalide."));
-        }
-        marketingService.traiterCallbackN8N(callback);
-        return ResponseEntity.ok(ApiResponse.success("Statut de diffusion mis à jour."));
     }
 }
