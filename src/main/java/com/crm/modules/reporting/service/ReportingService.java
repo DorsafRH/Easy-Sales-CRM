@@ -104,7 +104,11 @@ public class ReportingService implements IReportingService {
 
     @Override
     public StatsVentesResponse getStatsVentes(String emailProprietaire) {
-        Long id = chargerProprietaire(emailProprietaire).getId();
+        return getStatsVentes(chargerProprietaire(emailProprietaire).getId());
+    }
+
+    @Override
+    public StatsVentesResponse getStatsVentes(Long id) {
         return StatsVentesResponse.builder()
                 .nbLeadsActifs(calculerNbLeadsActifs(id))
                 .tauxConversionLeads(calculerTauxConversionLeads(id))

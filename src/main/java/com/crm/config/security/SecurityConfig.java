@@ -79,6 +79,12 @@ public class SecurityConfig {
                         .requestMatchers("/catalogue/**")
                         .hasAuthority("ROLE_PROPRIETAIRE")
 
+                        // Reporting automatisé (n8n → backend, sans JWT) :
+                        // gardé par le secret partagé X-Callback-Secret au niveau applicatif.
+                        // Doit précéder la règle JWT /reporting/** ci-dessous.
+                        .requestMatchers("/reporting/automation/**")
+                        .permitAll()
+
                         .requestMatchers("/reporting/**")
                         .hasAuthority("ROLE_PROPRIETAIRE")
 

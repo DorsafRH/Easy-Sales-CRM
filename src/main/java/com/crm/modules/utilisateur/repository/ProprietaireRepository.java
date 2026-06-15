@@ -1,11 +1,13 @@
 package com.crm.modules.utilisateur.repository;
 
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
+import com.crm.shared.enums.StatutCompte;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -39,4 +41,16 @@ public interface ProprietaireRepository extends JpaRepository<ProprietaireEntrep
                        OR p.entrepriseCompte.isDeleted = false)
             """)
     boolean existsByEmailAndCompteNonSupprime(@Param("email") String email);
+
+    /**
+     * Liste les propriétaires « actifs » pour le reporting commercial multi-tenant :
+     * compte utilisateur actif, entreprise rattachée non supprimée et au statut donné.
+     * Consommé par l'orchestration n8n (sans JWT) pour énumérer les destinataires.
+     *
+     * <p>Méthode dérivée (aucune requête JPQL) : la jointure générée sur
+     * {@code entrepriseCompte} exclut déjà les propriétaires sans entreprise.</p>
+     */
+    List<ProprietaireEntreprise>
+    findByIsActiveTrueAndEntrepriseCompte_IsDeletedFalseAndEntrepriseCompte_StatutCompteOrderById(
+            StatutCompte statutCompte);
 }

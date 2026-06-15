@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,4 +43,11 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
     List<Facture> findByProprietaireIdAndStatutAndDatePaiementBetween(
             Long proprietaireId, StatutFacture statut,
             LocalDateTime debut, LocalDateTime fin);
+
+    /**
+     * Retourne les factures d'un propriétaire dont le statut est dans la liste fournie.
+     * Utilisé pour les factures impayées du rapport (EMISE / LIVREE / EN_RETARD).
+     */
+    List<Facture> findByProprietaireIdAndStatutIn(
+            Long proprietaireId, Collection<StatutFacture> statuts);
 }

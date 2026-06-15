@@ -43,4 +43,11 @@ public interface DevisRepository
      */
     long countByProprietaireIdAndStatutIn(
             Long proprietaireId, Collection<StatutDevis> statuts);
+
+    /**
+     * Compte les devis créés dans une fenêtre et ayant le statut donné.
+     * Utilisé pour le taux d'acceptation des devis émis sur la période.
+     */
+    long countByProprietaireIdAndStatutAndDateCreationBetween(
+            Long proprietaireId, StatutDevis statut, LocalDateTime debut, LocalDateTime fin);
 }

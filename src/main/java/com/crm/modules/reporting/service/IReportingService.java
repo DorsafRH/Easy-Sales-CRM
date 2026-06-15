@@ -42,6 +42,15 @@ public interface IReportingService {
     StatsVentesResponse getStatsVentes(String emailProprietaire);
 
     /**
+     * Variante de {@link #getStatsVentes(String)} ciblée par identifiant.
+     * Utilisée par le reporting automatisé (n8n) qui dispose du proprietaireId
+     * et non d'un JWT.
+     *
+     * @param proprietaireId identifiant du propriétaire
+     */
+    StatsVentesResponse getStatsVentes(Long proprietaireId);
+
+    /**
      * Retourne le CA mensuel sur les 12 derniers mois glissants (factures PAYÉE).
      *
      * @param emailProprietaire email extrait du token JWT

@@ -71,3 +71,9 @@ meta:
     app-secret: ${META_APP_SECRET}
     redirect-uri: ${META_REDIRECT_URI}
     graph-api-version: v21.0
+
+# ===== Reporting commercial automatisé (n8n -> backend) =====
+# Secret partagé DÉDIÉ à l'intégration reporting (auth machine-à-machine, sans JWT).
+# En-tête attendu : X-Callback-Secret. Externalisé (jamais en dur).
+reporting:
+  callback-secret: ${REPORTING_CALLBACK_SECRET}
