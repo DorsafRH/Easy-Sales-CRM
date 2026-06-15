@@ -12,5 +12,6 @@ public enum SourceLead {
     EMAIL,
     SALON,
     APPEL_ENTRANT,
+    FACEBOOK,
     AUTRE
 }

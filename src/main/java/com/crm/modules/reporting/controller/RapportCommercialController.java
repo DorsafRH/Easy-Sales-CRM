@@ -91,4 +91,21 @@ public class RapportCommercialController {
                         requete.getProprietaireId(), requete.getPeriode(), requete.getSyntheseIa()),
                 "Rapport envoyé par email."));
     }
+
+    @Operation(
+            summary = "Déclencher les rapports pour tous les propriétaires actifs",
+            description = "Génère la synthèse IA et envoie le rapport par email à chaque propriétaire "
+                    + "actif (orchestration multi-tenant). Équivalent manuel du scheduler — utile "
+                    + "pour les tests/démos. Requiert l'en-tête X-Callback-Secret."
+    )
+    @PostMapping("/rapport/declencher")
+    public ResponseEntity<ApiResponse<Integer>> declencherRapports(
+            @RequestParam PeriodeRapport periode,
+            @RequestHeader(value = CallbackSecretGuard.HEADER, required = false) String secret) {
+
+        callbackSecretGuard.verifier(secret);
+        int envoyes = rapportCommercialService.envoyerTousLesRapports(periode);
+        return ResponseEntity.ok(ApiResponse.success(envoyes,
+                envoyes + " rapport(s) envoyé(s)."));
+    }
 }

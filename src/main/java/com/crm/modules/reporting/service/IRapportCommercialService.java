@@ -37,4 +37,14 @@ public interface IRapportCommercialService {
      * @return le rapport effectivement envoyé (synthèse IA incluse)
      */
     RapportCommercialResponse envoyerRapport(Long proprietaireId, PeriodeRapport periode, String syntheseIa);
+
+    /**
+     * Génère et envoie le rapport à <b>tous</b> les propriétaires actifs pour la période
+     * donnée (orchestration multi-tenant). La synthèse IA est générée automatiquement par
+     * propriétaire. Un échec individuel n'interrompt pas la boucle.
+     *
+     * @param periode SEMAINE | MOIS | ANNEE
+     * @return nombre de rapports effectivement envoyés
+     */
+    int envoyerTousLesRapports(PeriodeRapport periode);
 }

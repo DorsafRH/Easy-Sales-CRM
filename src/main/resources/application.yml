@@ -77,3 +77,9 @@ meta:
 # En-tête attendu : X-Callback-Secret. Externalisé (jamais en dur).
 reporting:
   callback-secret: ${REPORTING_CALLBACK_SECRET}
+  scheduler:
+    enabled: ${REPORTING_SCHEDULER_ENABLED:false}   # true en production
+  cron:
+    hebdomadaire: ${REPORTING_CRON_HEBDO:0 0 8 * * MON}   # lundi 8h00
+    mensuel:      ${REPORTING_CRON_MENSUEL:0 0 8 1 * *}   # le 1er du mois 8h00
+    annuel:       ${REPORTING_CRON_ANNUEL:0 0 8 1 1 *}    # le 1er janvier 8h00

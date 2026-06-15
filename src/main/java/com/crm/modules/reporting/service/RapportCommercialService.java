@@ -73,6 +73,7 @@ public class RapportCommercialService implements IRapportCommercialService {
     private final ProprietaireRepository          proprietaireRepository;
     private final IReportingService               reportingService;
     private final RapportEmailService             rapportEmailService;
+    private final RapportSyntheseService          rapportSyntheseService;
     private final FactureRepository               factureRepository;
     private final LeadRepository                  leadRepository;
     private final DevisRepository                 devisRepository;
@@ -119,9 +120,31 @@ public class RapportCommercialService implements IRapportCommercialService {
     public RapportCommercialResponse envoyerRapport(Long proprietaireId, PeriodeRapport periode,
                                                     String syntheseIa) {
         RapportCommercialResponse rapport = genererRapport(proprietaireId, periode);
-        rapport.setSyntheseIa(syntheseIa);
+        // Si l'appelant ne fournit pas de synthèse, on la génère via l'IA (Groq/Ollama).
+        String synthese = (syntheseIa != null && !syntheseIa.isBlank())
+                ? syntheseIa
+                : rapportSyntheseService.genererSynthese(rapport);
+        rapport.setSyntheseIa(synthese);
         rapportEmailService.envoyerRapport(rapport);
         return rapport;
+    }
+
+    @Override
+    public int envoyerTousLesRapports(PeriodeRapport periode) {
+        List<ProprietaireResumeResponse> proprietaires = listerProprietairesActifs();
+        int envoyes = 0;
+        for (ProprietaireResumeResponse p : proprietaires) {
+            try {
+                envoyerRapport(p.getId(), periode, null);
+                envoyes++;
+            } catch (Exception e) {
+                log.error("[REPORTING AUTO] Échec rapport {} pour propriétaire id={} ({}) : {}",
+                        periode, p.getId(), p.getEmail(), e.getMessage());
+            }
+        }
+        log.info("[REPORTING AUTO] Rapports {} envoyés : {}/{}",
+                periode, envoyes, proprietaires.size());
+        return envoyes;
     }
 
     // ── Construction des sections ───────────────────────────────────────────────
