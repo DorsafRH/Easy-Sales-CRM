@@ -1,5 +1,6 @@
 package com.crm.modules.reporting.controller;
 
+import com.crm.modules.reporting.dto.EnvoiRapportRequest;
 import com.crm.modules.reporting.dto.ProprietaireResumeResponse;
 import com.crm.modules.reporting.dto.RapportCommercialResponse;
 import com.crm.modules.reporting.security.CallbackSecretGuard;
@@ -11,9 +12,12 @@ import java.util.List;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -68,5 +72,23 @@ public class RapportCommercialController {
         return ResponseEntity.ok(ApiResponse.success(
                 rapportCommercialService.genererRapport(proprietaireId, periode),
                 "Rapport commercial généré."));
+    }
+
+    @Operation(
+            summary = "Envoyer le rapport commercial par email au propriétaire",
+            description = "Régénère le rapport (proprietaireId + periode), y injecte la synthèse IA "
+                    + "fournie par n8n, puis l'envoie par email au propriétaire. "
+                    + "Requiert l'en-tête X-Callback-Secret."
+    )
+    @PostMapping("/rapport/envoyer")
+    public ResponseEntity<ApiResponse<RapportCommercialResponse>> envoyerRapport(
+            @Valid @RequestBody EnvoiRapportRequest requete,
+            @RequestHeader(value = CallbackSecretGuard.HEADER, required = false) String secret) {
+
+        callbackSecretGuard.verifier(secret);
+        return ResponseEntity.ok(ApiResponse.success(
+                rapportCommercialService.envoyerRapport(
+                        requete.getProprietaireId(), requete.getPeriode(), requete.getSyntheseIa()),
+                "Rapport envoyé par email."));
     }
 }

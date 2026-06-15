@@ -72,6 +72,7 @@ public class RapportCommercialService implements IRapportCommercialService {
 
     private final ProprietaireRepository          proprietaireRepository;
     private final IReportingService               reportingService;
+    private final RapportEmailService             rapportEmailService;
     private final FactureRepository               factureRepository;
     private final LeadRepository                  leadRepository;
     private final DevisRepository                 devisRepository;
@@ -112,6 +113,15 @@ public class RapportCommercialService implements IRapportCommercialService {
                 .leadsParSource(construireLeadsParSource(proprietaireId, f))
                 .syntheseIa(null) // rempli par n8n (Groq) avant diffusion
                 .build();
+    }
+
+    @Override
+    public RapportCommercialResponse envoyerRapport(Long proprietaireId, PeriodeRapport periode,
+                                                    String syntheseIa) {
+        RapportCommercialResponse rapport = genererRapport(proprietaireId, periode);
+        rapport.setSyntheseIa(syntheseIa);
+        rapportEmailService.envoyerRapport(rapport);
+        return rapport;
     }
 
     // ── Construction des sections ───────────────────────────────────────────────

@@ -26,4 +26,15 @@ public interface IRapportCommercialService {
      * @param periode        SEMAINE | MOIS | ANNEE (période complète précédente)
      */
     RapportCommercialResponse genererRapport(Long proprietaireId, PeriodeRapport periode);
+
+    /**
+     * Régénère le rapport d'un propriétaire, y injecte la synthèse IA fournie, puis
+     * l'envoie par email au propriétaire concerné.
+     *
+     * @param proprietaireId identifiant du propriétaire
+     * @param periode        SEMAINE | MOIS | ANNEE (période complète précédente)
+     * @param syntheseIa     synthèse rédigée par l'IA (optionnelle, ajoutée par n8n)
+     * @return le rapport effectivement envoyé (synthèse IA incluse)
+     */
+    RapportCommercialResponse envoyerRapport(Long proprietaireId, PeriodeRapport periode, String syntheseIa);
 }
