@@ -7,8 +7,10 @@ import com.crm.modules.reporting.dto.RapportCommercialResponse.Synthese;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Présentation du rapport commercial : formatage des valeurs, calcul des barres
@@ -69,6 +71,58 @@ public final class RapportPresentation {
     public static long maxStatut(List<StatutCount> counts) {
         return counts == null ? 0
                 : counts.stream().mapToLong(StatutCount::getCount).max().orElse(0);
+    }
+
+    // ── Funnel commercial (entonnoir des opportunités) ───────────────────────────
+
+    /** Étapes ordonnées de l'entonnoir (PERDUE est exclue : montrée à part). */
+    private static final List<String> ORDRE_FUNNEL =
+            List.of("PROSPECTION", "QUALIFICATION", "PROPOSITION", "NEGOCIATION", "GAGNEE");
+
+    /** Libellés français lisibles pour chaque étape du funnel. */
+    private static final Map<String, String> LIBELLES_FUNNEL = Map.of(
+            "PROSPECTION", "Prospection",
+            "QUALIFICATION", "Qualification",
+            "PROPOSITION", "Proposition",
+            "NEGOCIATION", "Négociation",
+            "GAGNEE", "Gagnée");
+
+    /**
+     * Une étape de l'entonnoir commercial.
+     *
+     * @param libelle    nom lisible de l'étape
+     * @param count      nombre d'opportunités à cette étape
+     * @param largeurPct largeur de la barre (0..100) proportionnelle au max de l'entonnoir
+     * @param conversion taux de passage depuis l'étape précédente en % ({@code null} pour la
+     *                   première étape ou si l'étape précédente est vide)
+     */
+    public record EtapeFunnel(String libelle, long count, int largeurPct, Double conversion) {}
+
+    /**
+     * Construit l'entonnoir commercial ordonné à partir de la répartition par statut.
+     * La largeur des barres est proportionnelle au plus grand effectif, et chaque étape
+     * porte son taux de conversion depuis l'étape précédente (signature des CRM concurrents).
+     */
+    public static List<EtapeFunnel> funnel(List<StatutCount> repartition) {
+        Map<String, Long> parStatut = new LinkedHashMap<>();
+        if (repartition != null) {
+            for (StatutCount c : repartition) {
+                parStatut.put(c.getStatut(), c.getCount());
+            }
+        }
+        long max = ORDRE_FUNNEL.stream().mapToLong(s -> parStatut.getOrDefault(s, 0L)).max().orElse(0);
+
+        List<EtapeFunnel> etapes = new ArrayList<>();
+        long precedent = -1;
+        for (String statut : ORDRE_FUNNEL) {
+            long count = parStatut.getOrDefault(statut, 0L);
+            Double conversion = (precedent > 0) ? (count * 100.0) / precedent : null;
+            etapes.add(new EtapeFunnel(
+                    LIBELLES_FUNNEL.getOrDefault(statut, statut),
+                    count, largeurPct(count, max), conversion));
+            precedent = count;
+        }
+        return etapes;
     }
 
     /** Échappe le HTML/XML pour éviter toute injection depuis des données saisies. */

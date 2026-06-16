@@ -5,7 +5,6 @@ import com.crm.modules.reporting.dto.RapportCommercialResponse.Activites;
 import com.crm.modules.reporting.dto.RapportCommercialResponse.DevisFactures;
 import com.crm.modules.reporting.dto.RapportCommercialResponse.Pipeline;
 import com.crm.modules.reporting.dto.RapportCommercialResponse.SourceCount;
-import com.crm.modules.reporting.dto.RapportCommercialResponse.StatutCount;
 import com.crm.modules.reporting.dto.RapportCommercialResponse.Synthese;
 import com.crm.modules.reporting.dto.RapportCommercialResponse.TypeCount;
 import jakarta.mail.MessagingException;
@@ -22,9 +21,11 @@ import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.util.List;
 
+import com.crm.modules.reporting.service.RapportPresentation.EtapeFunnel;
+
 import static com.crm.modules.reporting.service.RapportPresentation.echappe;
+import static com.crm.modules.reporting.service.RapportPresentation.funnel;
 import static com.crm.modules.reporting.service.RapportPresentation.largeurPct;
-import static com.crm.modules.reporting.service.RapportPresentation.maxStatut;
 import static com.crm.modules.reporting.service.RapportPresentation.montant;
 import static com.crm.modules.reporting.service.RapportPresentation.pointsDAttention;
 import static com.crm.modules.reporting.service.RapportPresentation.pourcent;
@@ -56,10 +57,21 @@ public class RapportEmailService {
     @Value("${app.name:Easy Sales CRM}")
     private String appName;
 
-    private static final String BLEU = "#1E3A8A";
-    private static final String ROUGE = "#dc2626";
-    private static final String VERT = "#16a34a";
-    private static final String GRIS = "#475569";
+    // ── Design system premium (couleurs partagées avec le PDF) ──────────────────
+    private static final String INDIGO       = "#4f46e5";
+    private static final String INDIGO_FONCE = "#1e3a8a";
+    private static final String EMERAUDE     = "#10b981";
+    private static final String ROSE         = "#f43f5e";
+    private static final String AMBRE        = "#f59e0b";
+    private static final String ENCRE        = "#0f172a";
+    private static final String MUTED        = "#64748b";
+    private static final String BORD         = "#e2e8f0";
+
+    // Alias conservés pour les composants existants (barres, notes).
+    private static final String BLEU = INDIGO;
+    private static final String ROUGE = ROSE;
+    private static final String VERT = EMERAUDE;
+    private static final String GRIS = MUTED;
 
     /**
      * Envoie le rapport commercial (email visuel + PDF joint) au propriétaire.
@@ -115,6 +127,9 @@ public class RapportEmailService {
 
     // ── Corps HTML (email-safe : CSS inline + tables) ────────────────────────────
 
+    private static final String POLICE =
+            "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+
     private String construireCorpsHtml(RapportCommercialResponse r) {
         Synthese s = r.getSynthese();
         Pipeline p = r.getPipeline();
@@ -122,115 +137,194 @@ public class RapportEmailService {
         DevisFactures d = r.getDevisFactures();
 
         StringBuilder sb = new StringBuilder();
-        sb.append("<div style='font-family:Arial,sans-serif;max-width:640px;margin:0 auto;color:#0f172a;'>");
+        sb.append("<div style='background:#eef1f6;padding:24px 12px;'>");
+        sb.append("<div style='font-family:").append(POLICE)
+                .append(";max-width:660px;margin:0 auto;color:").append(ENCRE)
+                .append(";background:#ffffff;border-radius:18px;overflow:hidden;")
+                .append("box-shadow:0 10px 30px rgba(15,23,42,0.10);'>");
 
-        // En-tête
-        sb.append("<div style='background:").append(BLEU).append(";padding:24px;border-radius:8px 8px 0 0;'>")
-                .append("<h1 style='color:#fff;margin:0;font-size:20px;'>📊 Bilan commercial</h1>")
-                .append("<p style='color:#cbd5e1;margin:6px 0 0;font-size:14px;'>")
-                .append(echappe(r.getEntreprise().getNomEntreprise())).append(" · ")
-                .append(echappe(r.getPeriode().getLibelle())).append("</p>")
-                .append("</div>");
+        // En-tête premium (dégradé indigo, avec repli couleur solide)
+        sb.append("<div style='background:").append(INDIGO_FONCE)
+                .append(";background-image:linear-gradient(135deg,#1e3a8a 0%,#4338ca 55%,#6366f1 100%);")
+                .append("padding:30px 30px 26px;'>")
+                .append("<div style='color:#c7d2fe;font-size:11px;letter-spacing:2px;")
+                .append("text-transform:uppercase;font-weight:700;'>")
+                .append(echappe(appName)).append("</div>")
+                .append("<h1 style='color:#fff;margin:8px 0 0;font-size:26px;font-weight:800;")
+                .append("letter-spacing:-0.5px;'>Bilan commercial</h1>")
+                .append("<div style='margin-top:14px;'>")
+                .append("<span style='display:inline-block;background:rgba(255,255,255,0.16);")
+                .append("color:#fff;font-size:13px;font-weight:600;padding:6px 14px;border-radius:999px;'>")
+                .append(echappe(r.getPeriode().getLibelle())).append("</span>")
+                .append("<span style='display:inline-block;color:#c7d2fe;font-size:13px;")
+                .append("margin-left:10px;'>")
+                .append(echappe(r.getEntreprise().getNomEntreprise())).append("</span>")
+                .append("</div></div>");
 
-        sb.append("<div style='background:#f8fafc;padding:20px;border-radius:0 0 8px 8px;'>");
+        sb.append("<div style='padding:24px 26px 28px;'>");
 
         // Salutation
-        sb.append("<p>Bonjour ").append(echappe(r.getEntreprise().getNomProprietaire())).append(",</p>")
-                .append("<p>Voici votre bilan d'activité commerciale pour la période.</p>");
+        sb.append("<p style='margin:0 0 4px;'>Bonjour ")
+                .append(echappe(r.getEntreprise().getNomProprietaire())).append(",</p>")
+                .append("<p style='margin:0 0 8px;color:").append(MUTED)
+                .append(";'>Voici l'essentiel de votre performance commerciale sur la période.</p>");
 
         // Synthèse IA
         if (r.getSyntheseIa() != null && !r.getSyntheseIa().isBlank()) {
-            sb.append("<div style='background:#eff6ff;border-left:4px solid ").append(BLEU)
-                    .append(";padding:14px 16px;border-radius:6px;margin:16px 0;'>")
-                    .append("<p style='margin:0;font-style:italic;'>")
+            sb.append("<div style='background:#eef2ff;border-left:4px solid ").append(INDIGO)
+                    .append(";padding:14px 16px;border-radius:10px;margin:16px 0;'>")
+                    .append("<div style='font-size:11px;letter-spacing:1px;text-transform:uppercase;")
+                    .append("color:").append(INDIGO).append(";font-weight:700;margin-bottom:6px;'>")
+                    .append("✨ Synthèse IA</div>")
+                    .append("<p style='margin:0;font-style:italic;line-height:1.5;'>")
                     .append(echappe(r.getSyntheseIa()).replace("\n", "<br/>"))
                     .append("</p></div>");
         }
 
-        // Cartes KPI (2 x 2)
+        // Cartes KPI (2 x 2) — CA, Win rate, Panier moyen, Conversion leads
         sb.append("<table width='100%' cellpadding='0' cellspacing='0' style='margin:8px 0;'>")
                 .append("<tr>")
-                .append(carteKpi("CA encaissé", montant(s.getCaRealise()),
+                .append(carteKpi("CA encaissé", montant(s.getCaRealise()), INDIGO,
                         variation(s.getVariationCaPct())))
-                .append(carteKpi("Nouveaux leads", String.valueOf(s.getNouveauxLeads()), ""))
+                .append(carteKpi("Taux de victoire", pourcent(p.getWinRate()), EMERAUDE,
+                        "<span style='color:" + MUTED + ";font-size:12px;'>opportunités gagnées</span>"))
                 .append("</tr><tr>")
-                .append(carteKpi("Taux de conversion", pourcent(s.getTauxConversionLeads()), ""))
-                .append(carteKpi("Montant impayé", montant(d.getMontantImpaye()),
-                        noteImpaye(d)))
+                .append(carteKpi("Panier moyen", montant(s.getPanierMoyen()), AMBRE,
+                        "<span style='color:" + MUTED + ";font-size:12px;'>par affaire</span>"))
+                .append(carteKpi("Conversion leads", pourcent(s.getTauxConversionLeads()), INDIGO_FONCE,
+                        "<span style='color:" + MUTED + ";font-size:12px;'>"
+                                + s.getLeadsConvertis() + "/" + s.getNouveauxLeads() + " leads</span>"))
                 .append("</tr></table>");
 
-        // Points d'attention
-        StringBuilder alertes = new StringBuilder("<ul style='margin:0;padding-left:18px;'>");
-        for (String pt : pointsDAttention(r)) {
-            alertes.append("<li style='margin:4px 0;'>").append(echappe(pt)).append("</li>");
-        }
-        alertes.append("</ul>");
-        sb.append(carte("🚨 Points d'attention", alertes.toString()));
+        // Bloc Win rate hero (jauge de progression)
+        sb.append(blocWinRate(p.getWinRate()));
 
-        // Pipeline
-        sb.append(carte("Pipeline commercial",
-                "<p style='margin:0 0 8px;'>Valeur du pipeline : <strong>" + montant(p.getValeur())
-                        + "</strong></p>" + barresStatut(p.getRepartitionParStatut())));
+        // Funnel commercial (entonnoir + taux de conversion par étape)
+        sb.append(carte("Funnel commercial",
+                "<p style='margin:0 0 12px;color:" + MUTED + ";font-size:13px;'>Valeur du pipeline : "
+                        + "<strong style='color:" + ENCRE + ";'>" + montant(p.getValeur())
+                        + "</strong></p>" + blocFunnel(funnel(p.getRepartitionParStatut()))));
+
+        // Points d'attention
+        sb.append(carte("🚨 Points d'attention", blocAlertes(pointsDAttention(r))));
 
         // Activités
         sb.append(carte("Activités commerciales",
-                "<p style='margin:0 0 8px;'>Total : <strong>" + a.getTotal() + "</strong></p>"
-                        + barresType(a.getParType())));
+                "<p style='margin:0 0 8px;color:" + MUTED + ";font-size:13px;'>Total : <strong style='color:"
+                        + ENCRE + ";'>" + a.getTotal() + "</strong></p>" + barresType(a.getParType())));
 
         // Devis & factures
         sb.append(carte("Devis &amp; factures",
                 ligneKpi("Devis émis", String.valueOf(d.getDevisEmis()))
                         + ligneKpi("Taux d'acceptation des devis", pourcent(d.getTauxAcceptationDevis()))
-                        + ligneKpi("Factures impayées", String.valueOf(d.getFacturesImpayees()))
-                        + ligneKpi("CA encaissé", montant(d.getCaEncaisse()))));
+                        + ligneKpi("Factures impayées", noteImpaye(d))
+                        + ligneKpi("Montant impayé", montant(d.getMontantImpaye()))));
 
         // Leads par source
         sb.append(carte("Leads par source", barresSource(r.getLeadsParSource())));
 
         // Pied de page
-        sb.append("<p style='color:#64748b;font-size:12px;margin-top:20px;'>")
-                .append("Le détail complet est dans le PDF joint. Rapport généré automatiquement via ")
+        sb.append("<p style='color:").append(MUTED).append(";font-size:12px;margin-top:22px;")
+                .append("border-top:1px solid ").append(BORD).append(";padding-top:14px;'>")
+                .append("Le détail complet est dans le PDF joint. Rapport généré automatiquement par ")
                 .append(echappe(appName)).append(".</p>");
 
-        sb.append("</div></div>");
+        sb.append("</div></div></div>");
         return sb.toString();
     }
 
     // ── Composants email ────────────────────────────────────────────────────────
 
     private String carte(String titre, String contenuHtml) {
-        return "<div style='background:#fff;border:1px solid #e2e8f0;border-radius:8px;"
-                + "padding:16px;margin:14px 0;'>"
-                + "<h2 style='color:" + BLEU + ";margin:0 0 10px;font-size:16px;'>" + titre + "</h2>"
+        return "<div style='background:#fff;border:1px solid " + BORD + ";border-radius:14px;"
+                + "padding:18px;margin:14px 0;'>"
+                + "<h2 style='color:" + ENCRE + ";margin:0 0 12px;font-size:15px;font-weight:700;"
+                + "letter-spacing:-0.2px;'>" + titre + "</h2>"
                 + contenuHtml + "</div>";
     }
 
-    private String carteKpi(String label, String valeur, String noteHtml) {
+    /** Carte KPI premium : liseré couleur en haut, label majuscule, grande valeur, note. */
+    private String carteKpi(String label, String valeur, String accent, String noteHtml) {
         return "<td width='50%' style='padding:6px;' valign='top'>"
-                + "<div style='background:#fff;border:1px solid #e2e8f0;border-radius:8px;"
-                + "padding:14px;text-align:center;'>"
-                + "<div style='color:#64748b;font-size:11px;text-transform:uppercase;'>" + echappe(label) + "</div>"
-                + "<div style='font-size:22px;font-weight:bold;margin:4px 0;'>" + valeur + "</div>"
+                + "<div style='background:#fff;border:1px solid " + BORD + ";border-radius:14px;"
+                + "border-top:3px solid " + accent + ";padding:16px;'>"
+                + "<div style='color:" + MUTED + ";font-size:11px;letter-spacing:0.5px;"
+                + "text-transform:uppercase;font-weight:600;'>" + echappe(label) + "</div>"
+                + "<div style='font-size:24px;font-weight:800;margin:6px 0 4px;color:" + ENCRE + ";"
+                + "letter-spacing:-0.5px;'>" + valeur + "</div>"
                 + (noteHtml == null || noteHtml.isBlank() ? "" : "<div style='font-size:12px;'>" + noteHtml + "</div>")
                 + "</div></td>";
+    }
+
+    /** Bloc « win rate » mis en avant : grande valeur + jauge de progression. */
+    private String blocWinRate(double winRate) {
+        int largeur = (int) Math.max(0, Math.min(100, Math.round(winRate)));
+        return "<div style='background:#ecfdf5;border:1px solid #a7f3d0;border-radius:14px;"
+                + "padding:18px;margin:14px 0;'>"
+                + "<table width='100%' cellpadding='0' cellspacing='0'><tr>"
+                + "<td><div style='color:#047857;font-size:11px;letter-spacing:0.5px;"
+                + "text-transform:uppercase;font-weight:700;'>Taux de victoire</div>"
+                + "<div style='color:" + MUTED + ";font-size:12px;'>part des opportunités gagnées</div></td>"
+                + "<td align='right' style='font-size:30px;font-weight:800;color:#047857;'>"
+                + pourcent(winRate) + "</td></tr></table>"
+                + "<div style='background:#d1fae5;border-radius:999px;height:12px;margin-top:12px;'>"
+                + "<div style='background:" + EMERAUDE + ";background-image:linear-gradient(90deg,#10b981,#34d399);"
+                + "width:" + largeur + "%;height:12px;border-radius:999px;'></div></div>"
+                + "</div>";
+    }
+
+    /** Entonnoir commercial : barres décroissantes + chips de conversion entre étapes. */
+    private String blocFunnel(List<EtapeFunnel> etapes) {
+        if (etapes == null || etapes.isEmpty()) {
+            return "<p style='margin:0;color:" + MUTED + ";'>Aucune donnée.</p>";
+        }
+        StringBuilder b = new StringBuilder();
+        for (EtapeFunnel e : etapes) {
+            b.append("<table width='100%' cellpadding='0' cellspacing='0' style='margin:6px 0;font-size:13px;'><tr>")
+                    .append("<td width='28%' style='color:").append(ENCRE).append(";font-weight:600;'>")
+                    .append(echappe(e.libelle())).append("</td>")
+                    .append("<td width='46%'><div style='background:#eef2f7;border-radius:6px;'>")
+                    .append("<div style='background:").append(INDIGO)
+                    .append(";background-image:linear-gradient(90deg,#4338ca,#6366f1);width:")
+                    .append(Math.max(e.largeurPct(), e.count() > 0 ? 6 : 0))
+                    .append("%;height:18px;border-radius:6px;'></div></div></td>")
+                    .append("<td width='10%' align='right' style='font-weight:800;color:").append(ENCRE).append(";'>")
+                    .append(e.count()).append("</td>")
+                    .append("<td width='16%' align='right'>").append(chipConversion(e.conversion())).append("</td>")
+                    .append("</tr></table>");
+        }
+        return b.toString();
+    }
+
+    /** Chip de conversion d'une étape à l'autre (vert si ≥ 50 %, ambre sinon). */
+    private String chipConversion(Double conversion) {
+        if (conversion == null) {
+            return "";
+        }
+        String couleur = conversion >= 50 ? "#047857" : "#b45309";
+        String fond    = conversion >= 50 ? "#d1fae5" : "#fef3c7";
+        return "<span style='background:" + fond + ";color:" + couleur + ";font-size:11px;"
+                + "font-weight:700;padding:3px 8px;border-radius:999px;'>" + pourcent(conversion) + "</span>";
+    }
+
+    /** Liste des points d'attention sous forme de cartes à liseré gauche. */
+    private String blocAlertes(List<String> alertes) {
+        StringBuilder b = new StringBuilder();
+        for (String pt : alertes) {
+            boolean positif = pt.toLowerCase().contains("aucun point");
+            String accent = positif ? EMERAUDE : AMBRE;
+            String fond   = positif ? "#ecfdf5" : "#fffbeb";
+            b.append("<div style='background:").append(fond).append(";border-left:3px solid ").append(accent)
+                    .append(";border-radius:8px;padding:10px 12px;margin:6px 0;font-size:13px;'>")
+                    .append(echappe(pt)).append("</div>");
+        }
+        return b.toString();
     }
 
     private String ligneKpi(String label, String valeur) {
         return "<p style='margin:4px 0;font-size:14px;'>"
                 + "<span style='color:" + GRIS + ";'>" + echappe(label) + " : </span>"
                 + "<strong>" + valeur + "</strong></p>";
-    }
-
-    private String barresStatut(List<StatutCount> counts) {
-        if (counts == null || counts.isEmpty()) {
-            return "<p style='margin:0;color:" + GRIS + ";'>Aucune donnée.</p>";
-        }
-        long max = maxStatut(counts);
-        StringBuilder b = new StringBuilder();
-        for (StatutCount c : counts) {
-            b.append(barre(c.getStatut(), c.getCount(), largeurPct(c.getCount(), max)));
-        }
-        return b.toString();
     }
 
     private String barresType(List<TypeCount> counts) {

@@ -101,14 +101,17 @@ public class RapportCommercialService implements IRapportCommercialService {
 
         Fenetre f = calculerFenetre(periode);
 
+        // Snapshot pipeline calculé une seule fois (réutilisé par le pipeline ET la synthèse).
+        StatsVentesResponse stats = reportingService.getStatsVentes(proprietaireId);
+
         BigDecimal caRealise   = caEncaisse(proprietaireId, f.debut(), f.fin());
         BigDecimal caPrecedent = caEncaisse(proprietaireId, f.debutPrec(), f.finPrec());
 
         return RapportCommercialResponse.builder()
                 .entreprise(construireEntreprise(proprietaire))
                 .periode(construirePeriode(periode, f))
-                .synthese(construireSynthese(proprietaireId, f, caRealise, caPrecedent))
-                .pipeline(construirePipeline(proprietaireId))
+                .synthese(construireSynthese(proprietaireId, f, caRealise, caPrecedent, stats))
+                .pipeline(construirePipeline(stats))
                 .activites(construireActivites(proprietaireId, f))
                 .devisFactures(construireDevisFactures(proprietaireId, f, caRealise))
                 .leadsParSource(construireLeadsParSource(proprietaireId, f))
@@ -168,7 +171,8 @@ public class RapportCommercialService implements IRapportCommercialService {
                 .build();
     }
 
-    private Synthese construireSynthese(Long id, Fenetre f, BigDecimal caRealise, BigDecimal caPrecedent) {
+    private Synthese construireSynthese(Long id, Fenetre f, BigDecimal caRealise,
+                                        BigDecimal caPrecedent, StatsVentesResponse stats) {
         LocalDateTime debut = f.debut().atStartOfDay();
         LocalDateTime fin   = f.fin().atTime(23, 59, 59);
 
@@ -183,17 +187,18 @@ public class RapportCommercialService implements IRapportCommercialService {
                 .nouveauxLeads(nouveauxLeads)
                 .leadsConvertis(leadsConvertis)
                 .tauxConversionLeads(pourcentage(leadsConvertis, nouveauxLeads))
+                .panierMoyen(stats.getPanierMoyen())
                 .build();
     }
 
-    private Pipeline construirePipeline(Long id) {
+    private Pipeline construirePipeline(StatsVentesResponse stats) {
         // Snapshot courant — réutilise le calcul existant du dashboard.
-        StatsVentesResponse stats = reportingService.getStatsVentes(id);
         List<StatutCount> repartition = stats.getRepartitionOpportunites().stream()
                 .map(r -> StatutCount.builder().statut(r.getStatut()).count(r.getCount()).build())
                 .toList();
         return Pipeline.builder()
                 .valeur(stats.getValeurPipeline())
+                .winRate(stats.getTauxConversionOpportunites())
                 .repartitionParStatut(repartition)
                 .topOpportunites(stats.getTop3Opportunites())
                 .build();

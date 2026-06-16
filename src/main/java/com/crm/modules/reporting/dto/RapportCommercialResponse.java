@@ -85,6 +85,8 @@ public class RapportCommercialResponse {
         private long leadsConvertis;
         /** Taux de conversion des nouveaux leads de la période (en %). */
         private double tauxConversionLeads;
+        /** Panier moyen = CA encaissé / nombre de factures payées (deal size). */
+        private BigDecimal panierMoyen;
     }
 
     @Data
@@ -92,6 +94,8 @@ public class RapportCommercialResponse {
     public static class Pipeline {
         /** Valeur du pipeline = somme montantEstime des opportunités actives. */
         private BigDecimal valeur;
+        /** Taux de victoire = GAGNEE / (GAGNEE + PERDUE), en % (win rate). */
+        private double winRate;
         /** Répartition du nombre d'opportunités par StatutOpportunite. */
         private List<StatutCount> repartitionParStatut;
         /** Top opportunités actives par montant estimé décroissant. */
