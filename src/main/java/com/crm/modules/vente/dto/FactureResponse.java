@@ -27,6 +27,8 @@ public class FactureResponse {
     private Long clientId;
     private String clientNom;
     private String devisNumero;
+    private Long devisOrigineId;
+    private Long opportuniteId;
     private String proprietaireNom;
     private List<LigneFactureResponse> lignes;
     private String dateCreation;

@@ -42,6 +42,7 @@ public enum TypeActivite {
     // ── Sprint 3 — Devis ──────────────────────────────────────
     DEVIS_CREE,
     DEVIS_ENVOYE,
+    DEVIS_MODIFIE,
     DEVIS_ACCEPTE,
     DEVIS_REFUSE,
 

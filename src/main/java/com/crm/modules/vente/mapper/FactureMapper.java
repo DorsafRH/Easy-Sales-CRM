@@ -15,6 +15,8 @@ public interface FactureMapper {
     @Mapping(target = "clientId", source = "client.id")
     @Mapping(target = "clientNom", source = "client.nomAffichage")
     @Mapping(target = "devisNumero", source = "devisOrigine.numero")
+    @Mapping(target = "devisOrigineId", source = "devisOrigine.id")
+    @Mapping(target = "opportuniteId", source = "devisOrigine.opportunite.id")
     @Mapping(target = "proprietaireNom",
             expression = "java(f.getProprietaire() != null && f.getProprietaire().getEntrepriseCompte() != null"
                     + " ? f.getProprietaire().getEntrepriseCompte().getNomEntreprise()"

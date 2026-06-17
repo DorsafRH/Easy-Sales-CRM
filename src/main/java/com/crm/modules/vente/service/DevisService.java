@@ -121,15 +121,30 @@ public class DevisService implements IDevisService {
     @Override
     public DevisResponse modifier(Long id, DevisRequest req, Long proprietaireId) {
         Devis devis = charger(id, proprietaireId);
-        if (devis.getStatut() != StatutDevis.BROUILLON) {
-            throw new BusinessException("Seuls les devis en brouillon peuvent être modifiés.");
+        // On peut modifier un devis tant qu'il n'est pas verrouillé (accepté/refusé/expiré).
+        // La modification fait partie de la négociation, y compris après un premier envoi.
+        if (devis.getStatut() != StatutDevis.BROUILLON
+                && devis.getStatut() != StatutDevis.ENVOYE) {
+            throw new BusinessException(
+                    "Ce devis ne peut plus être modifié (statut : " + devis.getStatut().name() + ").");
         }
+        boolean etaitEnvoye = devis.getStatut() == StatutDevis.ENVOYE;
+
         devis.setNotes(req.getNotes());
         if (req.getValiditeJours() != null) devis.setValiditeJours(req.getValiditeJours());
         devis.getLignes().clear();
         devis.getLignes().addAll(construireLignes(req, devis, proprietaireId));
         devis.recalculerTotaux();
-        return enrichir(devisRepository.save(devis));
+        // Le devis reste ENVOYÉ : on conserve la trace qu'il a été envoyé au client.
+        Devis saved = devisRepository.save(devis);
+
+        // Traçabilité : on journalise toute révision d'un devis déjà envoyé (horodatée).
+        if (etaitEnvoye) {
+            activiteService.enregistrer(TypeActivite.DEVIS_MODIFIE,
+                    "Devis révisé après envoi", saved.getNumero(),
+                    saved.getId(), "DEVIS", null, saved.getProprietaire());
+        }
+        return enrichir(saved);
     }
 
     @Override
@@ -236,7 +251,8 @@ public class DevisService implements IDevisService {
     private void validerTransitionDevis(StatutDevis actuel, StatutDevis nouveau) {
         boolean valide = switch (actuel) {
             case BROUILLON -> nouveau == StatutDevis.ENVOYE;
-            case ENVOYE    -> nouveau == StatutDevis.ACCEPTE
+            case ENVOYE    -> nouveau == StatutDevis.ENVOYE        // renvoi d'une version révisée
+                    || nouveau == StatutDevis.ACCEPTE
                     || nouveau == StatutDevis.REFUSE
                     || nouveau == StatutDevis.EXPIRE;
             default -> false;

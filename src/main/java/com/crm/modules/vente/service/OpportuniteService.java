@@ -138,9 +138,30 @@ public class OpportuniteService implements IOpportuniteService {
     public OpportuniteResponse changerStatut(Long id, StatutOpportunite nouveauStatut,
                                              String raisonPerte, Long proprietaireId) {
         Opportunite o = charger(id, proprietaireId);
+        StatutOpportunite ancienStatut = o.getStatut();
+
+        // On ne peut pas gagner une opportunité sans devis : la facture est la copie
+        // fidèle d'un devis. Pas de devis actif ⇒ blocage (cohérence quote-to-cash).
+        if (nouveauStatut == StatutOpportunite.GAGNEE
+                && !devisRepository.existsByOpportuniteIdAndStatutNotIn(
+                        id, List.of(StatutDevis.REFUSE, StatutDevis.EXPIRE))) {
+            throw new BusinessException(
+                    "Créez d'abord un devis pour cette opportunité avant de la marquer gagnée.");
+        }
+
         o.setStatut(nouveauStatut);
         if (nouveauStatut == StatutOpportunite.PERDUE && raisonPerte != null) {
             o.setRaisonPerte(raisonPerte);
+        }
+        // Règle métier : devis non accepté ⇒ opportunité perdue. On refuse le devis actif.
+        if (nouveauStatut == StatutOpportunite.PERDUE) {
+            refuserDevisActif(o, proprietaireId);
+        }
+        // Réouverture après annulation de facture : on revient d'une opp GAGNÉE vers la
+        // NÉGOCIATION → le devis accepté redevient modifiable (ENVOYÉ) pour re-facturer.
+        if (nouveauStatut == StatutOpportunite.NEGOCIATION
+                && ancienStatut == StatutOpportunite.GAGNEE) {
+            reactiverDevisAccepte(o, proprietaireId);
         }
         o = opportuniteRepository.save(o);
 
@@ -223,8 +244,8 @@ public class OpportuniteService implements IOpportuniteService {
 
         if (devisActif.getStatut() != StatutDevis.ACCEPTE) return;
 
-        // Éviter un doublon
-        if (factureRepository.findByDevisOrigineId(devisActif.getId()).isPresent()) {
+        // Éviter un doublon (count robuste : ne jette pas NonUniqueResultException)
+        if (factureRepository.existsByDevisOrigineId(devisActif.getId())) {
             log.info("[OPPORTUNITE] Facture déjà existante pour devisId={}", devisActif.getId());
             return;
         }
@@ -305,8 +326,41 @@ public class OpportuniteService implements IOpportuniteService {
     private DevisResponse enrichirDevis(Devis d) {
         DevisResponse r = devisMapper.toResponse(d);
         r.setDateRelative(dateRelative(d.getDateCreation()));
-        r.setLignes(List.of());
         return r;
+    }
+
+    /**
+     * Refuse le devis actif d'une opportunité passée PERDUE. Inclut le devis ACCEPTÉ
+     * pour couvrir la réouverture après annulation de facture (opp GAGNÉE → PERDUE).
+     */
+    private void refuserDevisActif(Opportunite o, Long proprietaireId) {
+        devisRepository.findByOpportuniteIdAndProprietaireId(o.getId(), proprietaireId).stream()
+                .filter(d -> d.getStatut() == StatutDevis.BROUILLON
+                        || d.getStatut() == StatutDevis.ENVOYE
+                        || d.getStatut() == StatutDevis.ACCEPTE)
+                .forEach(d -> {
+                    d.setStatut(StatutDevis.REFUSE);
+                    devisRepository.save(d);
+                    activiteService.enregistrer(TypeActivite.DEVIS_REFUSE,
+                            "Devis refusé (opportunité perdue)", d.getNumero(),
+                            d.getId(), "DEVIS", o.getId(), o.getProprietaire());
+                });
+    }
+
+    /**
+     * Réouvre la négociation : repasse le devis ACCEPTÉ en ENVOYÉ pour qu'il redevienne
+     * modifiable (cas annulation de facture → re-facturer). Journalise la révision.
+     */
+    private void reactiverDevisAccepte(Opportunite o, Long proprietaireId) {
+        devisRepository.findByOpportuniteIdAndProprietaireId(o.getId(), proprietaireId).stream()
+                .filter(d -> d.getStatut() == StatutDevis.ACCEPTE)
+                .forEach(d -> {
+                    d.setStatut(StatutDevis.ENVOYE);
+                    devisRepository.save(d);
+                    activiteService.enregistrer(TypeActivite.DEVIS_MODIFIE,
+                            "Devis rouvert (facture annulée)", d.getNumero(),
+                            d.getId(), "DEVIS", o.getId(), o.getProprietaire());
+                });
     }
 
     private String dateRelative(LocalDateTime date) {
