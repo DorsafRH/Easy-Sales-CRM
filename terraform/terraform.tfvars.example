@@ -1,0 +1,27 @@
+# ============================================================
+#  Template des variables Terraform.
+#  Copier en terraform.tfvars puis renseigner :  cp terraform.tfvars.example terraform.tfvars
+#  terraform.tfvars est GITIGNORÉ (contient des secrets).
+# ============================================================
+
+# ---- Identité Azure (az account show) ----
+subscription_id = "00000000-0000-0000-0000-000000000000"
+tenant_id       = "00000000-0000-0000-0000-000000000000"
+
+# ---- Nommage (acr_name doit être GLOBALEMENT unique) ----
+acr_name = "easysalesacr2026"
+
+# ---- PostgreSQL ----
+pg_admin_password = "ChangeMoi-MotDePasseFort1!"
+
+# ---- Secrets applicatifs ----
+jwt_secret                = "remplace-par-une-cle-hex-longue"
+mail_username             = "ton-email@gmail.com"
+mail_password             = "mot-de-passe-application-gmail"
+admin_email               = "admin@exemple.com"
+admin_password            = "ChangeMoi1!"
+groq_api_key              = "gsk_..."
+meta_app_id               = ""
+meta_app_secret           = ""
+meta_redirect_uri         = "https://<app>.azurewebsites.net/api/marketing/oauth/callback"
+reporting_callback_secret = "un-secret-aleatoire"

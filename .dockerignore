@@ -1,0 +1,14 @@
+# Fichiers à NE PAS copier dans l'image Docker (build plus rapide + sécurité)
+# On garde le .jar exécutable (nécessaire au COPY), on exclut le reste de target/
+target/*
+!target/*.jar
+.git/
+.gitignore
+.idea/
+*.iml
+.vscode/
+HELP.md
+Dockerfile
+.dockerignore
+# Secrets locaux : ne JAMAIS les embarquer dans l'image
+src/main/resources/application-local.yml

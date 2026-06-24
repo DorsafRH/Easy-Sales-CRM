@@ -37,6 +37,13 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
     boolean existsByDevisOrigineId(Long devisId);
 
     /**
+     * Indique s'il existe une facture NON ANNULÉE pour ce devis. Permet de
+     * régénérer une facture après annulation (réouverture d'une opportunité) :
+     * une facture annulée ne doit pas bloquer la création d'une nouvelle.
+     */
+    boolean existsByDevisOrigineIdAndStatutNot(Long devisId, StatutFacture statut);
+
+    /**
      * Retourne les factures d'un propriétaire avec un statut donné et datePaiement
      * dans une fenêtre temporelle — utilisé pour calculer le CA sur une période.
      */

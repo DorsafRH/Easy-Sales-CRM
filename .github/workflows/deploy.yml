@@ -1,0 +1,71 @@
+# ============================================================
+#  CI — Build + push de l'image backend vers Azure Container Registry
+#  Se déclenche à chaque "git push" sur la branche develop.
+#  Étapes : compiler le .jar -> construire l'image Docker -> la pousser dans l'ACR.
+#
+#  ⚠️ Pourquoi PAS de déploiement automatique ici ?
+#  Le tenant ESPRIT interdit la création d'un service principal
+#  (erreur "Insufficient privileges"), or GitHub en aurait besoin pour
+#  authentifier une opération Azure. On automatise donc tout le CI
+#  (build + tests + scans + push) ; le déploiement final (mise à jour de la
+#  Container App) se lance manuellement en 1 commande (voir README/soutenance).
+#
+#  Pré-requis : secrets GitHub ACR_USERNAME et ACR_PASSWORD
+#  (identifiants admin de l'ACR, récupérés via `terraform output` ou
+#   `az acr credential show -n easysalesacrm`).
+#  (Les scans de sécurité seront ajoutés ensuite, un par un.)
+# ============================================================
+
+name: CI - Build & push backend image
+
+on:
+  push:
+    branches: [ develop ]      # se déclenche quand on pousse sur develop
+  workflow_dispatch:            # + bouton "Run workflow" manuel dans GitHub
+
+env:
+  ACR_LOGIN_SERVER: easysalesacrm.azurecr.io
+  IMAGE_NAME: easysales-backend
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Récupère le code du dépôt
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      # 2. Installe Java 17 (même version que le projet)
+      - name: Installer le JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven            # met en cache les dépendances Maven (build plus rapide)
+
+      # 3. Compile l'application en .jar (les tests sont sautés ici pour aller vite)
+      - name: Compiler le .jar (Maven)
+        run: ./mvnw clean package -DskipTests
+
+      # 4. Connexion à l'ACR avec ses identifiants propres (PAS de service principal)
+      - name: Connexion à l'ACR
+        run: echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ env.ACR_LOGIN_SERVER }} -u "${{ secrets.ACR_USERNAME }}" --password-stdin
+
+      # 5. Construit l'image Docker et la pousse (taggée avec le SHA du commit + latest)
+      - name: Build & push de l'image Docker
+        run: |
+          IMAGE="${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}"
+          docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
+          docker push "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:latest"
+
+      # ----------------------------------------------------------------
+      # ÉTAPE DE DÉPLOIEMENT (CD) — à lancer MANUELLEMENT depuis ton PC,
+      # car le tenant ESPRIT empêche GitHub d'avoir une identité Azure :
+      #
+      #   az containerapp update \
+      #     --name easysales-backend \
+      #     --resource-group easysales-rg \
+      #     --image easysalesacrm.azurecr.io/easysales-backend:latest
+      # ----------------------------------------------------------------

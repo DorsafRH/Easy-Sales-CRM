@@ -244,9 +244,12 @@ public class OpportuniteService implements IOpportuniteService {
 
         if (devisActif.getStatut() != StatutDevis.ACCEPTE) return;
 
-        // Éviter un doublon (count robuste : ne jette pas NonUniqueResultException)
-        if (factureRepository.existsByDevisOrigineId(devisActif.getId())) {
-            log.info("[OPPORTUNITE] Facture déjà existante pour devisId={}", devisActif.getId());
+        // Éviter un doublon : on ne bloque que s'il existe une facture NON ANNULÉE.
+        // Une facture annulée (opportunité rouverte) doit pouvoir être régénérée
+        // pour refléter le devis courant (éventuellement modifié).
+        if (factureRepository.existsByDevisOrigineIdAndStatutNot(
+                devisActif.getId(), StatutFacture.ANNULEE)) {
+            log.info("[OPPORTUNITE] Facture active déjà existante pour devisId={}", devisActif.getId());
             return;
         }
 

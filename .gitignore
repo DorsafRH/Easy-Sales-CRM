@@ -20,6 +20,10 @@ target/
 *.ipr
 # Local config - données sensibles
 application-local.yml
+# Variables d'environnement (docker-compose / déploiement) - SECRETS
+.env
+.env.*
+!.env.example
 ### NetBeans ###
 /nbproject/private/
 /nbbuild/

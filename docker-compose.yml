@@ -1,0 +1,44 @@
+# ============================================================
+#  docker-compose — environnement LOCAL (backend + base de données)
+#  Lancement : docker compose up --build
+#  Deux conteneurs séparés, connectés par le réseau interne Docker.
+# ============================================================
+
+services:
+
+  # ---------- Base de données PostgreSQL (conteneur dédié) ----------
+  postgres:
+    image: postgres:16-alpine
+    container_name: easysales-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"            # 5433 côté PC (évite le conflit avec un Postgres local) -> 5432 dans le conteneur
+    volumes:
+      - pgdata:/var/lib/postgresql/data   # persistance : les données survivent aux redémarrages
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---------- Backend Spring Boot ----------
+  backend:
+    build: .                   # construit l'image depuis le Dockerfile du dossier courant
+    container_name: easysales-backend
+    env_file:
+      - .env                   # injecte tous les secrets/variables (gitignoré)
+    environment:
+      # Surcharges spécifiques au conteneur (priment sur application.yml) :
+      SPRING_PROFILES_ACTIVE: docker                                   # n'exige plus application-local.yml
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}  # vise le service "postgres", pas localhost
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy   # démarre seulement quand la base est prête
+
+volumes:
+  pgdata:
