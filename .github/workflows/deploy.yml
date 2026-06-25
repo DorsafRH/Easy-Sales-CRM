@@ -1,24 +1,25 @@
 # ============================================================
-#  CI + Sécurité — Backend Easy Sales
+#  CI + Sécurité — Backend Easy Sales  (pipeline multi-jobs)
 #  Déclenché à chaque "git push" sur develop (+ bouton manuel).
 #
-#  Pipeline : build .jar -> SCA (OWASP) -> build image -> scan image (Trivy)
-#             -> push ACR -> SAST (SonarCloud) -> DAST (OWASP ZAP).
+#  Graphe des jobs :
+#     tests ──► build ──┬──► sonarcloud (SAST)
+#                       └──► image-scan-push ──► dast-zap (DAST)
+#     sca-owasp   (parallèle, SCA dépendances)
+#     trivy-fs    (parallèle, scan code/dépendances)
 #
-#  ⚠️ TOUS les scans sont NON-BLOQUANTS pour l'instant (continue-on-error) :
-#     ils produisent un rapport mais ne font PAS échouer le pipeline.
-#     On les rendra bloquants un par un, après les avoir validés.
+#  ⚠️ Scans NON-BLOQUANTS pour l'instant (continue-on-error) : ils
+#     produisent un rapport mais ne cassent pas le pipeline. On les
+#     rendra bloquants un par un une fois validés.
 #
-#  ⚠️ Le DÉPLOIEMENT (CD) reste MANUEL : le tenant ESPRIT interdit à GitHub
-#     de créer une identité Azure (service principal). Commande manuelle :
+#  ⚠️ Déploiement (CD) MANUEL (tenant ESPRIT bloque l'identité Azure) :
 #       az containerapp update --name easysales-backend \
 #         --resource-group easysales-rg \
 #         --image easysalesacrm.azurecr.io/easysales-backend:latest
 #
-#  PRÉREQUIS (secrets/variables GitHub à configurer pour activer chaque scan) :
-#    - ACR_USERNAME / ACR_PASSWORD : identifiants ACR  (push image)        ✅ requis
-#    - SONAR_TOKEN                 : jeton SonarCloud   (SAST)             -> sinon l'étape Sonar est sautée
-#    - variable APP_URL            : URL Azure du backend (DAST ZAP)        -> sinon valeur par défaut ci-dessous
+#  Secrets/variables GitHub :
+#    - ACR_USERNAME / ACR_PASSWORD : push image                 ✅ requis
+#    - SONAR_TOKEN                 : SonarCloud (sinon job sauté)
 # ============================================================
 
 name: CI + Securite backend
@@ -31,47 +32,52 @@ on:
 env:
   ACR_LOGIN_SERVER: easysalesacrm.azurecr.io
   IMAGE_NAME: easysales-backend
-  # URL publique du backend déployé (pour le scan DAST ZAP).
-  # ⚠️ change à chaque destroy/recreate -> mets-la à jour si besoin.
+  # URL publique du backend (pour le scan DAST ZAP). ⚠️ change à chaque destroy/recreate.
   APP_URL: https://easysales-backend.bravemoss-1c5a2f5c.francecentral.azurecontainerapps.io/api
 
 jobs:
-  # ----------------------------------------------------------------
-  #  JOB 1 : build + scans statiques + push de l'image
-  # ----------------------------------------------------------------
-  build-scan-push:
+
+  # ---------- 1) TESTS ----------
+  tests:
     runs-on: ubuntu-latest
-    env:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   # exposé au job pour la condition "if" de Sonar
-
     steps:
-      # 1. Récupère le code
-      - name: Checkout du code
-        uses: actions/checkout@v4
-
-      # 2. Installe Java 17
-      - name: Installer le JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
           cache: maven
-
-      # 3. Tests (étape dédiée, visible dans le pipeline).
-      #    Non-bloquant POUR L'INSTANT : si tes tests passent au vert, enlève
-      #    "continue-on-error" pour le rendre BLOQUANT (un test rouge empêchera
-      #    alors le build/déploiement = vraie porte de qualité).
+      # Non-bloquant POUR L'INSTANT : si les tests passent au vert, enlève
+      # "continue-on-error" pour rendre cette porte de qualité BLOQUANTE.
       - name: Lancer les tests (Maven)
         continue-on-error: true
         run: ./mvnw -B test
 
-      # 4. Compile le .jar (les tests viennent d'être lancés, on les saute ici)
-      - name: Compiler le .jar (Maven)
+  # ---------- 2) BUILD du .jar (partagé via artefact) ----------
+  build:
+    runs-on: ubuntu-latest
+    needs: tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Compiler le .jar
         run: ./mvnw -B clean package -DskipTests
+      - name: Publier le .jar (artefact réutilisé par le job image)
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: target/*.jar
 
-      # 4. SCA — OWASP Dependency-Check : failles connues dans les librairies Maven.
-      #    Non-bloquant. (1ʳᵉ exécution lente : télécharge la base NVD.)
-      - name: Scan des dépendances (OWASP Dependency-Check)
+  # ---------- 3) SCA — OWASP Dependency-Check (parallèle) ----------
+  sca-owasp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: OWASP Dependency-Check (failles des librairies)
         uses: dependency-check/Dependency-Check_Action@main
         continue-on-error: true
         with:
@@ -81,19 +87,21 @@ jobs:
           args: >-
             --failOnCVSS 11
             --enableRetired
-
-      - name: Publier le rapport OWASP (artefact téléchargeable)
+      - name: Publier le rapport OWASP (artefact)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rapport-owasp-dependency-check
+          name: rapport-owasp
           path: reports
           if-no-files-found: ignore
 
-      # Trivy filesystem — scanne le code source + les dépendances (pom.xml, .jar)
-      #     AVANT de builder l'image. Complète le scan d'image plus bas. Non-bloquant.
+  # ---------- 4) Trivy filesystem — scan code + dépendances (parallèle) ----------
+  trivy-fs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - name: Scan du code/dépendances (Trivy filesystem)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@master
         continue-on-error: true
         with:
           scan-type: fs
@@ -103,19 +111,55 @@ jobs:
           ignore-unfixed: true
           exit-code: '0'
 
-      # 5. Connexion à l'ACR (identifiants ressource, pas de service principal)
+  # ---------- 5) SAST — SonarCloud (après build) ----------
+  sonarcloud:
+    runs-on: ubuntu-latest
+    needs: build
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # Sonar a besoin de tout l'historique
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      # Si SONAR_TOKEN n'est pas configuré -> on sort proprement (vert),
+      # sinon on lance l'analyse. ⚠️ remplace org / projectKey par les tiens.
+      - name: Analyse SonarCloud (SAST)
+        continue-on-error: true
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "SONAR_TOKEN non configuré -> étape SonarCloud sautée (à activer plus tard)."
+            exit 0
+          fi
+          ./mvnw -B verify sonar:sonar \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.organization=REMPLACE-PAR-TON-ORG \
+            -Dsonar.projectKey=REMPLACE-PAR-TA-CLE-PROJET \
+            -DskipTests
+
+  # ---------- 6) Image : build + scan Trivy + push ACR (après build) ----------
+  image-scan-push:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Récupérer le .jar compilé (artefact du job build)
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jar
+          path: target
       - name: Connexion à l'ACR
         run: echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ env.ACR_LOGIN_SERVER }} -u "${{ secrets.ACR_USERNAME }}" --password-stdin
-
-      # 6. Build de l'image Docker
       - name: Build de l'image Docker
         run: |
           IMAGE="${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}"
           docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
-
-      # 7. Container scan — Trivy : failles dans l'image (OS + libs). Non-bloquant.
       - name: Scan de l'image (Trivy)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@master
         continue-on-error: true
         with:
           image-ref: ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
@@ -123,43 +167,21 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: '0'
-
-      # 8. Push de l'image dans l'ACR
       - name: Push de l'image vers l'ACR
         run: |
           IMAGE="${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}"
           docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
 
-      # 9. SAST — SonarCloud : qualité + failles du code source. Non-bloquant.
-      #    Sauté tant que le secret SONAR_TOKEN n'est pas configuré.
-      #    ⚠️ Remplace organization / projectKey par les tiens (créés sur sonarcloud.io).
-      - name: Analyse SonarCloud (SAST)
-        if: ${{ env.SONAR_TOKEN != '' }}
-        continue-on-error: true
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: >-
-          ./mvnw -B verify sonar:sonar
-          -Dsonar.host.url=https://sonarcloud.io
-          -Dsonar.organization=REMPLACE-PAR-TON-ORG
-          -Dsonar.projectKey=REMPLACE-PAR-TA-CLE-PROJET
-          -DskipTests
-
-  # ----------------------------------------------------------------
-  #  JOB 2 : DAST — scan de l'application EN LIGNE (OWASP ZAP)
-  #  S'exécute après le build. Scanne l'URL Azure (APP_URL).
-  #  ⚠️ scanne la version ACTUELLEMENT déployée (le CD étant manuel).
-  # ----------------------------------------------------------------
+  # ---------- 7) DAST — OWASP ZAP sur l'app en ligne (après push) ----------
   dast-zap:
     runs-on: ubuntu-latest
-    needs: build-scan-push
-    continue-on-error: true
+    needs: image-scan-push
     steps:
       - name: Scan dynamique (OWASP ZAP Baseline)
         uses: zaproxy/action-baseline@v0.12.0
         continue-on-error: true
         with:
           target: ${{ env.APP_URL }}
-          fail_action: false           # non-bloquant
-          allow_issue_writing: false   # ne crée pas d'issues GitHub automatiquement
+          fail_action: false
+          allow_issue_writing: false
