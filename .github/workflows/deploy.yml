@@ -103,6 +103,8 @@ jobs:
       - name: Scan du code/dépendances (Trivy filesystem)
         uses: aquasecurity/trivy-action@master
         continue-on-error: true
+        env:
+          TRIVY_OFFLINE_SCAN: "true"   # n'interroge PAS Maven Central (évite l'erreur 429)
         with:
           scan-type: fs
           scan-ref: .
@@ -137,7 +139,7 @@ jobs:
           fi
           ./mvnw -B verify sonar:sonar \
             -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.organization=DorsafRH \
+            -Dsonar.organization=dorsafrh \
             -Dsonar.projectKey=DorsafRH_Easy-Sales-CRM-Backend \
             -DskipTests
 
@@ -167,6 +169,8 @@ jobs:
       - name: Scan de l'image (Trivy -> HTML)
         uses: aquasecurity/trivy-action@master
         continue-on-error: true
+        env:
+          TRIVY_OFFLINE_SCAN: "true"   # n'interroge PAS Maven Central (évite l'erreur 429)
         with:
           image-ref: ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           format: template
