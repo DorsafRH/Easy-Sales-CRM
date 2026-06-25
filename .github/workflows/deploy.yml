@@ -158,15 +158,53 @@ jobs:
         run: |
           IMAGE="${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}"
           docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
-      - name: Scan de l'image (Trivy)
+      # Télécharge le template HTML officiel de Trivy (rapports lisibles pour le jury)
+      - name: Télécharger le template HTML de Trivy
+        run: curl -sSL -o html.tpl https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl
+
+      # Scan de l'IMAGE -> rapport HTML. Non-bloquant (exit-code 0).
+      # Pour le rendre BLOQUANT plus tard : retire "continue-on-error" et mets exit-code '1'.
+      - name: Scan de l'image (Trivy -> HTML)
         uses: aquasecurity/trivy-action@master
         continue-on-error: true
         with:
           image-ref: ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          format: table
-          severity: HIGH,CRITICAL
+          format: template
+          template: '@html.tpl'
+          output: trivy-image-report.html
+          severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: '0'
+
+      - name: Upload du rapport Trivy image
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-image-report
+          path: trivy-image-report.html
+          retention-days: 14
+          if-no-files-found: ignore
+
+      # Scan des MAUVAISES CONFIGURATIONS (Dockerfile + Terraform/IaC) -> rapport HTML
+      - name: Scan des misconfigurations (Trivy config / IaC)
+        uses: aquasecurity/trivy-action@master
+        continue-on-error: true
+        with:
+          scan-type: config
+          scan-ref: .
+          format: template
+          template: '@html.tpl'
+          output: trivy-config-report.html
+
+      - name: Upload du rapport Trivy config
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-config-report
+          path: trivy-config-report.html
+          retention-days: 14
+          if-no-files-found: ignore
+
       - name: Push de l'image vers l'ACR
         run: |
           IMAGE="${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}"
