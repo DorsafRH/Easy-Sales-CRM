@@ -137,8 +137,8 @@ jobs:
           fi
           ./mvnw -B verify sonar:sonar \
             -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.organization=REMPLACE-PAR-TON-ORG \
-            -Dsonar.projectKey=REMPLACE-PAR-TA-CLE-PROJET \
+            -Dsonar.organization=DorsafRH \
+            -Dsonar.projectKey=DorsafRH_Easy-Sales-CRM-Backend \
             -DskipTests
 
   # ---------- 6) Image : build + scan Trivy + push ACR (après build) ----------
@@ -185,3 +185,13 @@ jobs:
           target: ${{ env.APP_URL }}
           fail_action: false
           allow_issue_writing: false
+
+      # Récupère le rapport HTML de ZAP comme artefact téléchargeable
+      - name: Upload du rapport ZAP
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: report_html.html
+          retention-days: 30
+          if-no-files-found: ignore
