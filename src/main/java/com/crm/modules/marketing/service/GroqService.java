@@ -23,11 +23,34 @@ import java.util.Map;
 @Service
 public class GroqService {
 
+    private static final String REGLES_POST =
+            "Écris un post Facebook prêt à publier, bien structuré et vivant :\n"
+                    + "1) une accroche courte avec un emoji ;\n"
+                    + "2) 2 ou 3 lignes d'avantages, chacune sur sa propre ligne et commençant par un "
+                    + "emoji pertinent (✅ 🚀 💡 📦 💰 …) ;\n"
+                    + "3) un appel à l'action clair avec un emoji ;\n"
+                    + "4) sur une NOUVELLE ligne tout en bas, 3 à 5 hashtags, chacun OBLIGATOIREMENT "
+                    + "précédé du symbole # et collé au mot (ex : #Marketing #Tunisie #Promo). "
+                    + "N'écris JAMAIS un hashtag sans le #.\n"
+                    + "Utilise plusieurs emojis (au moins un par ligne). "
+                    + "N'utilise AUCUN markdown d'emphase : pas de ** ni de * autour des mots, pas de "
+                    + "titre en #Titre — le texte doit s'afficher tel quel sur Facebook. "
+                    + "N'invente RIEN qui ne soit pas fourni. En particulier : AUCUNE date, AUCUN délai "
+                    + "ou durée (« sous 30 jours », « dans 10 jours »), AUCUN chiffre, pourcentage ou "
+                    + "caractéristique technique, et aucune annonce de « lancement / nouveauté / produit "
+                    + "révolutionnaire » qui ne soit pas explicitement indiquée. Utilise UNIQUEMENT le "
+                    + "nom du produit, son prix, la remise et la consigne fournis ; si une information "
+                    + "manque, reste général plutôt que d'inventer. "
+                    + "N'entoure JAMAIS les noms de produits ou de catégories de guillemets. "
+                    + "Interdits : liens, numéros de téléphone ou e-mails inventés, texte entre crochets []. "
+                    + "Environ 60 à 100 mots. "
+                    + "Réponds UNIQUEMENT avec le texte du post, sans aucune phrase d'introduction.";
+
     private static final String SYSTEM_GENERATOR =
-            "Tu es un expert en marketing digital pour PMEs tunisiennes. Génère du contenu engageant.";
+            "Tu es un expert en marketing digital pour PME tunisiennes. " + REGLES_POST;
     private static final String SYSTEM_CRITIC =
-            "Tu es un éditeur marketing. Améliore ce contenu : rends-le plus percutant, "
-                    + "corrige les fautes, optimise pour l'engagement.";
+            "Tu es relecteur. Améliore le post ci-dessous (style, impact, fautes) en gardant "
+                    + "exactement les mêmes règles. " + REGLES_POST;
     private static final int MAX_TOKENS = 500;
     private static final double TEMPERATURE = 0.7;
 
@@ -47,9 +70,89 @@ public class GroqService {
         AppelResultat generator = appeler(SYSTEM_GENERATOR, construirePromptUtilisateur(request));
         AppelResultat critic = appeler(SYSTEM_CRITIC, generator.contenu());
         return GenererContenuResponseDTO.builder()
-                .contenuGenere(generator.contenu())
-                .contenuAmeliore(critic.contenu())
+                .contenuGenere(nettoyer(generator.contenu()))
+                .contenuAmeliore(nettoyer(critic.contenu()))
                 .tokensUtilises(generator.tokens() + critic.tokens())
+                .build();
+    }
+
+    /**
+     * Nettoie la sortie du LLM pour un rendu Facebook propre : retire le markdown d'emphase
+     * (**, *, _, `, #) et un éventuel encadrement par des guillemets.
+     */
+    private String nettoyer(String texte) {
+        if (texte == null) return "";
+        String t = texte.trim();
+        // retire une phrase d'introduction du type « Voici une version améliorée … : »
+        t = t.replaceAll("(?is)^\\s*voici[^\\n:]*:\\s*", "");
+        // retire un éventuel encadrement par des guillemets
+        if (t.length() >= 2 && t.startsWith("\"") && t.endsWith("\"")) {
+            t = t.substring(1, t.length() - 1).trim();
+        }
+        // retire le markdown d'emphase (** et *) et les accents graves, MAIS garde le # des hashtags
+        t = t.replaceAll("\\*+", "").replace("`", "");
+        // retire les guillemets (droits et français) qui encadrent souvent les noms de produits/catégories
+        t = t.replaceAll("[«»\"“”]", "");
+        // retire uniquement les titres markdown « # » / « ## » en début de ligne (pas les #hashtags)
+        t = t.replaceAll("(?m)^\\s*#{1,6}\\s+", "");
+        t = t.replaceAll("[ \\t]+\n", "\n");
+        return forcerHashtags(t.trim());
+    }
+
+    /**
+     * Si la dernière ligne non vide ressemble à des hashtags écrits SANS le symbole #
+     * (mots en CamelCase/concaténés), remet le # devant chacun. Conservateur : ne touche
+     * pas une phrase normale (ponctuation, mots courts en minuscules).
+     */
+    private String forcerHashtags(String texte) {
+        String[] lignes = texte.split("\n");
+        for (int i = lignes.length - 1; i >= 0; i--) {
+            String ligne = lignes[i].trim();
+            if (ligne.isEmpty()) continue;
+
+            String[] tokens = ligne.split("\\s+");
+            if (tokens.length < 2 || tokens.length > 6) return texte;
+
+            boolean camel = false;
+            for (String tk : tokens) {
+                if (tk.startsWith("#")) return texte;              // déjà des hashtags → on ne touche pas
+                if (!tk.matches("[\\p{L}\\p{N}]{3,}")) return texte; // pas une ligne de hashtags
+                if (tk.substring(1).chars().anyMatch(Character::isUpperCase)) camel = true;
+            }
+            if (!camel) return texte; // pas de signal CamelCase → probablement une vraie phrase
+
+            StringBuilder sb = new StringBuilder();
+            for (int j = 0; j < tokens.length; j++) {
+                if (j > 0) sb.append(' ');
+                sb.append('#').append(tokens[j]);
+            }
+            lignes[i] = sb.toString();
+            return String.join("\n", lignes);
+        }
+        return texte;
+    }
+
+    /**
+     * Améliore un texte existant en une passe (raffinage itératif), en tenant compte
+     * d'une consigne et d'une tonalité facultatives. Les mêmes règles de format s'appliquent.
+     */
+    public GenererContenuResponseDTO ameliorer(String texte, String consigne, String tonalite) {
+        StringBuilder u = new StringBuilder("Voici le post actuel :\n").append(texte).append('\n');
+        if (consigne != null && !consigne.isBlank()) {
+            u.append("Demande de modification : ").append(consigne.trim()).append('\n');
+        }
+        if (tonalite != null && !tonalite.isBlank()) {
+            u.append("Tonalité souhaitée : ").append(tonalite.trim()).append('\n');
+        }
+        u.append("RÉÉCRIS ENTIÈREMENT le post en intégrant la demande de façon cohérente. "
+                + "Supprime toute information qui contredit la demande ; ne laisse JAMAIS deux "
+                + "informations contradictoires (ex : deux délais ou deux dates différentes). "
+                + "Ne garde pas les anciennes formulations qui ne collent plus.\n");
+        AppelResultat resultat = appeler(SYSTEM_CRITIC, u.toString());
+        return GenererContenuResponseDTO.builder()
+                .contenuGenere(texte)
+                .contenuAmeliore(nettoyer(resultat.contenu()))
+                .tokensUtilises(resultat.tokens())
                 .build();
     }
 

@@ -1,6 +1,8 @@
 package com.crm.modules.marketing.controller;
 
+import com.crm.modules.marketing.dto.request.AmeliorerContenuRequestDTO;
 import com.crm.modules.marketing.dto.request.GenererContenuRequestDTO;
+import com.crm.modules.marketing.dto.request.GenererPublicationRequestDTO;
 import com.crm.modules.marketing.dto.request.PublicationRequestDTO;
 import com.crm.modules.marketing.dto.response.CompteSocialResponseDTO;
 import com.crm.modules.marketing.dto.response.GenererContenuResponseDTO;
@@ -54,6 +56,29 @@ public class MarketingController {
             @Valid @RequestBody GenererContenuRequestDTO request) {
         return ResponseEntity.ok(ApiResponse.success(
                 marketingService.genererContenu(request), "Contenu généré."));
+    }
+
+    @Operation(summary = "Générer une publication pilotée par le catalogue",
+            description = "Selon la portée (produits/catégorie/boutique/libre), le backend récupère "
+                    + "les données produit, calcule les prix promo et fait rédiger le post par l'IA")
+    @PreAuthorize("hasAuthority('ROLE_PROPRIETAIRE')")
+    @PostMapping("/generer-publication")
+    public ResponseEntity<ApiResponse<GenererContenuResponseDTO>> genererPublication(
+            @Valid @RequestBody GenererPublicationRequestDTO request,
+            @AuthenticationPrincipal ProprietaireEntreprise proprietaire) {
+        return ResponseEntity.ok(ApiResponse.success(
+                marketingService.genererPublication(request, proprietaire.getId()),
+                "Contenu généré."));
+    }
+
+    @Operation(summary = "Améliorer un texte avec l'IA",
+            description = "Raffine un texte déjà rédigé ; peut être relancé autant de fois que voulu")
+    @PreAuthorize("hasAuthority('ROLE_PROPRIETAIRE')")
+    @PostMapping("/ameliorer")
+    public ResponseEntity<ApiResponse<GenererContenuResponseDTO>> ameliorer(
+            @Valid @RequestBody AmeliorerContenuRequestDTO request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                marketingService.ameliorerContenu(request), "Contenu amélioré."));
     }
 
     @Operation(summary = "Créer une publication",

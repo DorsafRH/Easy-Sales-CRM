@@ -1,6 +1,8 @@
 package com.crm.modules.marketing.service;
 
+import com.crm.modules.marketing.dto.request.AmeliorerContenuRequestDTO;
 import com.crm.modules.marketing.dto.request.GenererContenuRequestDTO;
+import com.crm.modules.marketing.dto.request.GenererPublicationRequestDTO;
 import com.crm.modules.marketing.dto.request.PublicationRequestDTO;
 import com.crm.modules.marketing.dto.response.CompteSocialResponseDTO;
 import com.crm.modules.marketing.dto.response.GenererContenuResponseDTO;
@@ -20,6 +22,27 @@ public interface IMarketingService {
      * @return le contenu généré et la version améliorée
      */
     GenererContenuResponseDTO genererContenu(GenererContenuRequestDTO request);
+
+    /**
+     * Génère une publication Facebook pilotée par le catalogue : selon la portée choisie,
+     * le backend récupère les produits/catégorie, calcule les prix promo, construit le prompt
+     * et délègue la rédaction au LLM. L'utilisateur ne ressaisit jamais les données produit.
+     *
+     * @param request        portée + sélection + remise + consigne + tonalité/langue
+     * @param proprietaireId identifiant du propriétaire courant (multi-tenant)
+     * @return le contenu généré et la version améliorée
+     */
+    GenererContenuResponseDTO genererPublication(GenererPublicationRequestDTO request,
+                                                 Long proprietaireId);
+
+    /**
+     * Améliore un texte de publication déjà rédigé (raffinage itératif par l'IA).
+     * Peut être relancé autant de fois que souhaité jusqu'au résultat voulu.
+     *
+     * @param request texte courant + consigne/tonalité facultatives
+     * @return le texte amélioré
+     */
+    GenererContenuResponseDTO ameliorerContenu(AmeliorerContenuRequestDTO request);
 
     /**
      * Crée une nouvelle publication marketing pour le propriétaire courant.
