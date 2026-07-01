@@ -1,5 +1,6 @@
 package com.crm.modules.vente.service;
 
+import com.crm.modules.vente.dto.LeadQualifieRequest;
 import com.crm.modules.vente.dto.LeadRequest;
 import com.crm.modules.vente.dto.LeadResponse;
 import com.crm.modules.vente.dto.OpportuniteResponse;
@@ -17,6 +18,13 @@ public interface ILeadService {
     LeadResponse obtenir(Long id, Long proprietaireId);
 
     LeadResponse creer(LeadRequest request, Long proprietaireId);
+
+    /**
+     * Crée un lead déjà qualifié (automatisation : chatbot Messenger, commentaire).
+     * Contrairement à {@link #creer}, le statut est {@code QUALIFIE} et le score
+     * provient de l'appelant (LLM) au lieu d'être recalculé côté serveur.
+     */
+    LeadResponse creerQualifie(LeadQualifieRequest request, Long proprietaireId);
 
     LeadResponse modifier(Long id, LeadRequest request, Long proprietaireId);
 

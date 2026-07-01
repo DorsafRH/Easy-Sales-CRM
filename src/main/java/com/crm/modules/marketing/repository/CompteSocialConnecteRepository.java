@@ -23,4 +23,22 @@ public interface CompteSocialConnecteRepository
 
     Optional<CompteSocialConnecte> findByProprietaireIdAndTypeReseau(
             Long proprietaireId, TypeReseau typeReseau);
+
+    /**
+     * Résolution du propriétaire (multi-tenant) à partir de l'identifiant de page
+     * Meta reçu dans un webhook n8n — clé : {@code identifiantExterne == pageId}.
+     * {@code findFirst} : robuste même si une page a été connectée plusieurs fois
+     * (doublons résiduels) — on prend une connexion valide quelconque (même propriétaire).
+     */
+    Optional<CompteSocialConnecte> findFirstByIdentifiantExterneAndTypeReseau(
+            String identifiantExterne, TypeReseau typeReseau);
+
+    /**
+     * Toutes les connexions d'une page donnée pour un propriétaire — utilisé par
+     * l'OAuth pour faire un upsert + dédoublonnage à la reconnexion.
+     */
+    List<CompteSocialConnecte> findByProprietaireIdAndIdentifiantExterneAndTypeReseau(
+            Long proprietaireId, String identifiantExterne, TypeReseau typeReseau);
+
+    List<CompteSocialConnecte> findByTypeReseau(TypeReseau typeReseau);
 }

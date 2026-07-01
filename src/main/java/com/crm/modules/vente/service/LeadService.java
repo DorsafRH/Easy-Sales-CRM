@@ -9,6 +9,7 @@ import com.crm.modules.contact.repository.ContactRepository;
 import com.crm.modules.reporting.service.IActiviteService;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
 import com.crm.modules.utilisateur.repository.ProprietaireRepository;
+import com.crm.modules.vente.dto.LeadQualifieRequest;
 import com.crm.modules.vente.dto.LeadRequest;
 import com.crm.modules.vente.dto.LeadResponse;
 import com.crm.modules.vente.dto.OpportuniteResponse;
@@ -112,6 +113,36 @@ public class LeadService implements ILeadService {
 
         activiteService.enregistrer(
                 TypeActivite.LEAD_CREE, "Nouveau lead ajouté", lead.getNom(),
+                lead.getId(), "LEAD", null, proprietaire);
+
+        return enrichir(lead);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  CRÉATION AUTOMATISÉE (lead déjà qualifié — ex. Messenger)
+    // ─────────────────────────────────────────────────────────
+
+    @Override
+    public LeadResponse creerQualifie(LeadQualifieRequest req, Long proprietaireId) {
+        ProprietaireEntreprise proprietaire = chargerProprietaire(proprietaireId);
+
+        Lead lead = Lead.builder()
+                .nom(req.getNom())
+                .email(req.getEmail())
+                .telephone(req.getTelephone())
+                .source(req.getSource())
+                .descriptionBesoin(req.getResume())
+                .statut(StatutLead.QUALIFIE)
+                .score(borner(req.getScore()))
+                .proprietaire(proprietaire)
+                .build();
+
+        lead = leadRepository.save(lead);
+        log.info("[LEAD] Créé (qualifié auto) — id={} nom={} source={} score={}",
+                lead.getId(), lead.getNom(), lead.getSource(), lead.getScore());
+
+        activiteService.enregistrer(
+                TypeActivite.LEAD_CREE, "Lead qualifié automatiquement", lead.getNom(),
                 lead.getId(), "LEAD", null, proprietaire);
 
         return enrichir(lead);
@@ -347,6 +378,12 @@ public class LeadService implements ILeadService {
         if (req.getEntreprise() != null && !req.getEntreprise().isBlank()) score += 15;
         if (req.getPoste() != null && !req.getPoste().isBlank()) score += 15;
         return score;
+    }
+
+    /** Borne un score externe (LLM) dans l'intervalle [0, 100] ; null → 0. */
+    private int borner(Integer score) {
+        if (score == null) return 0;
+        return Math.max(0, Math.min(100, score));
     }
 
     private LeadResponse enrichir(Lead lead) {

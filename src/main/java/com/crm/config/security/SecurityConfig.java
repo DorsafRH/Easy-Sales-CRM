@@ -109,6 +109,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/marketing/oauth/callback")
                         .permitAll()
 
+                        // Marketing automatisé (n8n → backend, sans JWT) :
+                        // gardé par le secret partagé X-Callback-Secret au niveau applicatif.
+                        // Doit précéder la règle JWT /marketing/** ci-dessous.
+                        .requestMatchers("/marketing/automation/**")
+                        .permitAll()
+
                         .requestMatchers("/marketing/**")
                         .hasAuthority("ROLE_PROPRIETAIRE")
 

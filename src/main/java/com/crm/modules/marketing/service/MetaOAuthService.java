@@ -125,7 +125,7 @@ public class MetaOAuthService {
                                       ProprietaireEntreprise proprietaire) {
         String premierNom = null;
         for (Map<String, Object> page : pages) {
-            CompteSocialConnecte compte = compteRepository.save(construireCompte(page, proprietaire));
+            CompteSocialConnecte compte = enregistrerOuMettreAJour(page, proprietaire);
             if (premierNom == null) {
                 premierNom = compte.getNomCompte();
             }
@@ -133,6 +133,37 @@ public class MetaOAuthService {
         log.info("[META] {} page(s) connectée(s) pour proprietaire={}",
                 pages.size(), proprietaire.getId());
         return pages.size() + " page(s) connectée(s) : " + premierNom;
+    }
+
+    /**
+     * Upsert d'une page : si elle est déjà connectée pour ce propriétaire, on met à
+     * jour le token + la date (et on supprime les éventuels doublons résiduels) ;
+     * sinon on crée la connexion. Évite l'accumulation de doublons à chaque reconnexion.
+     */
+    private CompteSocialConnecte enregistrerOuMettreAJour(Map<String, Object> page,
+                                                          ProprietaireEntreprise proprietaire) {
+        String pageId = String.valueOf(page.get("id"));
+        List<CompteSocialConnecte> existants = compteRepository
+                .findByProprietaireIdAndIdentifiantExterneAndTypeReseau(
+                        proprietaire.getId(), pageId, TypeReseau.FACEBOOK);
+
+        CompteSocialConnecte compte;
+        if (existants.isEmpty()) {
+            compte = construireCompte(page, proprietaire);
+        } else {
+            // On conserve la 1re connexion, on supprime les doublons éventuels.
+            compte = existants.get(0);
+            if (existants.size() > 1) {
+                compteRepository.deleteAll(existants.subList(1, existants.size()));
+                log.info("[META] {} doublon(s) supprimé(s) pour la page {}",
+                        existants.size() - 1, pageId);
+            }
+            compte.setNomCompte(String.valueOf(page.get("name")));
+            compte.setAccessToken(String.valueOf(page.get("access_token")));
+            compte.setStatutConnexion("CONNECTE");
+            compte.setDateConnexion(LocalDateTime.now());
+        }
+        return compteRepository.save(compte);
     }
 
     private CompteSocialConnecte construireCompte(Map<String, Object> page,

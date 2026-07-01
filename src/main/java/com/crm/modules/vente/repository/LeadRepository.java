@@ -52,4 +52,13 @@ public interface LeadRepository
     /** Nombre de leads créés dans la fenêtre pour une source donnée. */
     long countByProprietaireIdAndSourceAndDateCreationBetween(
             Long proprietaireId, SourceLead source, LocalDateTime debut, LocalDateTime fin);
+
+    // ── Statistiques marketing (leads issus des réseaux sociaux) ──────────────
+
+    /** Nombre de leads dont la source fait partie des canaux marketing. */
+    long countByProprietaireIdAndSourceIn(Long proprietaireId, Collection<SourceLead> sources);
+
+    /** Leads des canaux marketing, du plus récent au plus ancien (agrégés en service). */
+    List<Lead> findByProprietaireIdAndSourceInOrderByDateCreationDesc(
+            Long proprietaireId, Collection<SourceLead> sources);
 }

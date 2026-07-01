@@ -72,6 +72,12 @@ meta:
     redirect-uri: ${META_REDIRECT_URI}
     graph-api-version: v21.0
 
+# ===== Marketing automatisé (n8n -> backend : qualification Messenger + stats) =====
+# Secret partagé DÉDIÉ à l'intégration marketing (auth machine-à-machine, sans JWT).
+# En-tête attendu : X-Callback-Secret. Externalisé (jamais en dur). Distinct du secret reporting.
+messenger:
+  callback-secret: ${MESSENGER_CALLBACK_SECRET}
+
 # ===== Reporting commercial automatisé (n8n -> backend) =====
 # Secret partagé DÉDIÉ à l'intégration reporting (auth machine-à-machine, sans JWT).
 # En-tête attendu : X-Callback-Secret. Externalisé (jamais en dur).

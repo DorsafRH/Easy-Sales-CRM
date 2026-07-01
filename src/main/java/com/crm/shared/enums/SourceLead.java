@@ -13,5 +13,7 @@ public enum SourceLead {
     SALON,
     APPEL_ENTRANT,
     FACEBOOK,
+    MESSENGER,
+    COMMENTAIRE,
     AUTRE
 }
