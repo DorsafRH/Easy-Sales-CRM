@@ -7,6 +7,7 @@ import com.crm.modules.contact.dto.ContactResponse;
 import com.crm.modules.contact.entity.Contact;
 import com.crm.modules.contact.mapper.ContactMapper;
 import com.crm.modules.contact.repository.ContactRepository;
+import com.crm.modules.reporting.service.IActiviteService;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
 import com.crm.shared.exception.BusinessException;
 import com.crm.shared.exception.ResourceNotFoundException;
@@ -39,6 +40,7 @@ class ContactServiceTest {
     @Mock private ContactRepository contactRepository;
     @Mock private ClientRepository  clientRepository;
     @Mock private ContactMapper     contactMapper;
+    @Mock private IActiviteService  activiteService;
 
     @InjectMocks
     private ContactService contactService;

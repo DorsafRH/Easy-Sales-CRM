@@ -310,7 +310,7 @@ class CategorieServiceTest {
 
             assertThatThrownBy(() -> categorieService.supprimerCategorie(10L, 1L))
                     .isInstanceOf(BusinessException.class)
-                    .hasMessageContaining("produits actifs");
+                    .hasMessageContaining("produit(s) actif(s)");
 
             verify(categorieRepository, never()).delete(any(Categorie.class));
         }

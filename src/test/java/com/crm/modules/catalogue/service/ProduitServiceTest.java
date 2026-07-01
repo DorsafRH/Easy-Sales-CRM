@@ -6,6 +6,7 @@ import com.crm.modules.catalogue.entity.Produit;
 import com.crm.modules.catalogue.mapper.ProduitMapper;
 import com.crm.modules.catalogue.repository.CategorieRepository;
 import com.crm.modules.catalogue.repository.ProduitRepository;
+import com.crm.modules.reporting.service.IActiviteService;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
 import com.crm.shared.enums.StatutProduit;
 import com.crm.shared.enums.TypeProduit;
@@ -40,6 +41,7 @@ class ProduitServiceTest {
     @Mock private ProduitRepository   produitRepository;
     @Mock private CategorieRepository categorieRepository;
     @Mock private ProduitMapper       produitMapper;
+    @Mock private IActiviteService    activiteService;
 
     @InjectMocks
     private ProduitService produitService;

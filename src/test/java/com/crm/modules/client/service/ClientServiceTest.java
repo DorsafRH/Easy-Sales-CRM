@@ -10,6 +10,7 @@ import com.crm.modules.client.entity.ClientIndividuel;
 import com.crm.modules.client.mapper.ClientMapper;
 import com.crm.modules.client.repository.ClientRepository;
 import com.crm.modules.contact.repository.ContactRepository;
+import com.crm.modules.reporting.service.IActiviteService;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
 import com.crm.shared.exception.BusinessException;
 import com.crm.shared.exception.ResourceNotFoundException;
@@ -47,6 +48,7 @@ class ClientServiceTest {
     @Mock private ClientRepository  clientRepository;
     @Mock private ContactRepository contactRepository;
     @Mock private ClientMapper      clientMapper;
+    @Mock private IActiviteService  activiteService;
 
     @InjectMocks
     private ClientService clientService;
