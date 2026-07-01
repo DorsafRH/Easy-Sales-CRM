@@ -178,3 +178,16 @@ resource "azurerm_container_app" "backend" {
     }
   }
 }
+
+# ---------- Azure Static Web App (front admin Angular) ----------
+# ⚠️ West Europe : les Static Web Apps ne sont PAS disponibles en France Central.
+#    C'est juste l'hébergement statique (fichiers Angular) -> aucun impact fonctionnel.
+#    SKU "Free" = gratuit. On NE lie PAS le repo GitHub ici : on récupère le token de
+#    déploiement (output static_web_app_api_token) et on déploie via notre propre workflow.
+resource "azurerm_static_web_app" "frontend" {
+  name                = var.static_web_app_name
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = "westeurope"
+  sku_tier            = "Free"
+  sku_size            = "Free"
+}

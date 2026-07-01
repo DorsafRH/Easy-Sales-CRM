@@ -27,3 +27,14 @@ output "postgres_fqdn" {
   description = "Nom d'hôte du serveur PostgreSQL"
   value       = azurerm_postgresql_flexible_server.pg.fqdn
 }
+
+output "static_web_app_default_host" {
+  description = "URL publique du front Angular (Static Web App)"
+  value       = azurerm_static_web_app.frontend.default_host_name
+}
+
+output "static_web_app_api_token" {
+  description = "Token de déploiement (à mettre dans le secret GitHub AZURE_STATIC_WEB_APPS_API_TOKEN du repo front)"
+  value       = azurerm_static_web_app.frontend.api_key
+  sensitive   = true
+}

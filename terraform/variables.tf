@@ -43,6 +43,12 @@ variable "app_service_name" {
   default     = "easysales-backend"
 }
 
+variable "static_web_app_name" {
+  description = "Nom de la Static Web App (front admin Angular)"
+  type        = string
+  default     = "easysales-admin-web"
+}
+
 variable "backend_image_tag" {
   description = "Tag de l'image backend à déployer (ex: latest ou le SHA du commit)"
   type        = string
