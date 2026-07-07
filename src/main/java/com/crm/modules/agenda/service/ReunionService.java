@@ -12,6 +12,7 @@ import com.crm.modules.client.repository.ClientRepository;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
 import com.crm.modules.utilisateur.repository.ProprietaireRepository;
 import com.crm.shared.enums.StatutReunion;
+import com.crm.shared.enums.TypeParticipant;
 import com.crm.shared.exception.BusinessException;
 import com.crm.shared.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -163,10 +165,16 @@ public class ReunionService implements IReunionService {
 
         ReunionResponse response = enrichir(reunion);
 
-        // Envoi invitations email (asynchrone)
-        if (Boolean.TRUE.equals(req.getEnvoyerInvitation())
-                && !req.getParticipants().isEmpty()) {
-            reunionEmailService.envoyerInvitations(response, req.getParticipants());
+        // Envoi invitations email (asynchrone).
+        // Automatique si la réunion est en ligne — le client principal et les
+        // participants (contacts, externes) ayant un email reçoivent
+        // l'invitation calendrier (.ics). Sinon, sur demande explicite.
+        if (reunion.isEnLigne() || Boolean.TRUE.equals(req.getEnvoyerInvitation())) {
+            List<ReunionParticipantDto> destinataires =
+                    construireDestinataires(client, req.getParticipants());
+            if (!destinataires.isEmpty()) {
+                reunionEmailService.envoyerInvitations(response, destinataires);
+            }
         }
 
         return response;
@@ -335,6 +343,38 @@ public class ReunionService implements IReunionService {
                                 + " à " + rFin.toLocalTime() + ".");
             }
         }
+    }
+
+    /**
+     * Construit la liste des destinataires de l'invitation calendrier.
+     *
+     * <p>Inclut le client principal (email de sa fiche) en plus des
+     * participants saisis. Le client n'est ajouté que s'il a un email
+     * et qu'aucun participant ne porte déjà cet email
+     * (dédoublonnage insensible à la casse).</p>
+     *
+     * @param client       client principal de la réunion
+     * @param participants participants saisis dans le formulaire
+     * @return liste des destinataires de l'invitation
+     */
+    private List<ReunionParticipantDto> construireDestinataires(
+            Client client, List<ReunionParticipantDto> participants) {
+
+        List<ReunionParticipantDto> destinataires = new ArrayList<>(participants);
+
+        String emailClient = client.getEmail();
+        if (emailClient != null && !emailClient.isBlank()) {
+            boolean dejaPresent = participants.stream()
+                    .anyMatch(p -> emailClient.equalsIgnoreCase(p.getEmail()));
+            if (!dejaPresent) {
+                destinataires.add(ReunionParticipantDto.builder()
+                        .nom(client.getNomAffichage())
+                        .email(emailClient)
+                        .type(TypeParticipant.CLIENT)
+                        .build());
+            }
+        }
+        return destinataires;
     }
 
     /**

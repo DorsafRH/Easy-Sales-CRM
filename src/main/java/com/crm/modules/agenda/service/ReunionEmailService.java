@@ -90,7 +90,7 @@ public class ReunionEmailService {
             helper.setText(construireCorpsHtml(reunion, participant), true);
 
             // Pièce jointe ICS — compatible tous les clients calendrier
-            String ics = construireIcs(reunion);
+            String ics = construireIcs(reunion, participant);
             helper.addAttachment("invitation.ics",
                     () -> new java.io.ByteArrayInputStream(ics.getBytes()),
                     "text/calendar; method=REQUEST");
@@ -158,10 +158,13 @@ public class ReunionEmailService {
      * Génère le contenu ICS (iCalendar) de la réunion.
      * Compatible Google Calendar, Outlook, Apple Calendar.
      *
-     * @param reunion détails de la réunion
+     * @param reunion     détails de la réunion
+     * @param participant destinataire — ajouté en ATTENDEE pour que le
+     *                    client calendrier reconnaisse une vraie invitation
      * @return contenu ICS sous forme de chaîne
      */
-    private String construireIcs(ReunionResponse reunion) {
+    private String construireIcs(ReunionResponse reunion,
+                                 ReunionParticipantDto participant) {
         LocalDateTime dateHeure = LocalDateTime.parse(reunion.getDateHeure());
         LocalDateTime dateFin = dateHeure.plusMinutes(reunion.getDureeMinutes());
         ZoneId zoneTunisie = ZoneId.of("Africa/Tunis");
@@ -183,8 +186,23 @@ public class ReunionEmailService {
                 .append("SUMMARY:").append(reunion.getTitre()).append("\r\n")
                 .append("ORGANIZER:MAILTO:").append(fromEmail).append("\r\n");
 
+        // ATTENDEE nominatif — nécessaire pour que Gmail/Outlook affichent
+        // les boutons Accepter / Refuser (vraie invitation, pas simple événement)
+        if (participant.getEmail() != null && !participant.getEmail().isBlank()) {
+            String cn = participant.getPrenom() != null && !participant.getPrenom().isBlank()
+                    ? participant.getPrenom() + " " + participant.getNom()
+                    : participant.getNom();
+            ics.append("ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;CN=")
+                    .append(cn)
+                    .append(":MAILTO:").append(participant.getEmail()).append("\r\n");
+        }
+
+        // LOCATION : lieu physique en priorité, sinon le lien visio
+        // (réunion en ligne) pour qu'il soit visible dans le calendrier
         if (reunion.getLieu() != null && !reunion.getLieu().isBlank()) {
             ics.append("LOCATION:").append(reunion.getLieu()).append("\r\n");
+        } else if (reunion.getLienReunion() != null && !reunion.getLienReunion().isBlank()) {
+            ics.append("LOCATION:").append(reunion.getLienReunion()).append("\r\n");
         }
 
         if (reunion.getLienReunion() != null && !reunion.getLienReunion().isBlank()) {
