@@ -171,6 +171,12 @@ resource "azurerm_container_app" "backend" {
         name  = "REPORTING_CALLBACK_SECRET"
         value = var.reporting_callback_secret
       }
+      # Exigé au démarrage par MarketingCallbackGuard (Sprint 4), même si le module
+      # Messenger n'est PAS utilisé en prod (App Review Meta) -> valeur aléatoire dédiée.
+      env {
+        name  = "MESSENGER_CALLBACK_SECRET"
+        value = var.messenger_callback_secret
+      }
       env {
         name  = "REPORTING_SCHEDULER_ENABLED"
         value = "true"
@@ -179,15 +185,48 @@ resource "azurerm_container_app" "backend" {
   }
 }
 
-# ---------- Azure Static Web App (front admin Angular) ----------
-# ⚠️ West Europe : les Static Web Apps ne sont PAS disponibles en France Central.
-#    C'est juste l'hébergement statique (fichiers Angular) -> aucun impact fonctionnel.
-#    SKU "Free" = gratuit. On NE lie PAS le repo GitHub ici : on récupère le token de
-#    déploiement (output static_web_app_api_token) et on déploie via notre propre workflow.
-resource "azurerm_static_web_app" "frontend" {
-  name                = var.static_web_app_name
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = "westeurope"
-  sku_tier            = "Free"
-  sku_size            = "Free"
+# ---------- Container App front admin Angular (nginx) ----------
+# ⚠️ Static Web App impossible : la policy de l'abonnement étudiant n'autorise aucune
+#    des régions SWA (403 RequestDisallowedByAzure). On sert donc l'Angular compilé
+#    via une image nginx dans le MÊME environnement Container Apps que le backend.
+# ⚠️ Œuf-poule : l'image doit exister dans l'ACR AVANT le premier apply
+#    (le pipeline du repo front la pousse) — même contrainte que le backend.
+resource "azurerm_container_app" "frontend" {
+  name                         = var.frontend_app_name
+  container_app_environment_id = azurerm_container_app_environment.env.id
+  resource_group_name          = azurerm_resource_group.rg.name
+  revision_mode                = "Single"
+
+  registry {
+    server               = azurerm_container_registry.acr.login_server
+    username             = azurerm_container_registry.acr.admin_username
+    password_secret_name = "acr-password"
+  }
+  secret {
+    name  = "acr-password"
+    value = azurerm_container_registry.acr.admin_password
+  }
+
+  # HTTPS public ; nginx écoute sur le port 80 du conteneur
+  ingress {
+    external_enabled = true
+    target_port      = 80
+    traffic_weight {
+      latest_revision = true
+      percentage      = 100
+    }
+  }
+
+  template {
+    # Fichiers statiques : nginx démarre en <1s -> scale-to-zero sans douleur (0 coût au repos)
+    min_replicas = 0
+    max_replicas = 1
+
+    container {
+      name   = "frontend"
+      image  = "${azurerm_container_registry.acr.login_server}/${var.frontend_app_name}:${var.frontend_image_tag}"
+      cpu    = 0.25
+      memory = "0.5Gi"
+    }
+  }
 }

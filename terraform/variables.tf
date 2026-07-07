@@ -43,10 +43,16 @@ variable "app_service_name" {
   default     = "easysales-backend"
 }
 
-variable "static_web_app_name" {
-  description = "Nom de la Static Web App (front admin Angular)"
+variable "frontend_app_name" {
+  description = "Nom de la Container App front admin Angular (aussi le nom de l'image dans l'ACR)"
   type        = string
   default     = "easysales-admin-web"
+}
+
+variable "frontend_image_tag" {
+  description = "Tag de l'image front à déployer (ex: latest ou le SHA du commit)"
+  type        = string
+  default     = "latest"
 }
 
 variable "backend_image_tag" {
@@ -139,4 +145,10 @@ variable "meta_redirect_uri" {
 variable "reporting_callback_secret" {
   type      = string
   sensitive = true
+}
+
+variable "messenger_callback_secret" {
+  description = "Secret du callback Messenger (module non utilisé en prod : mettre une valeur aléatoire)"
+  type        = string
+  sensitive   = true
 }
