@@ -7,7 +7,9 @@ import com.crm.modules.marketing.dto.request.PublicationRequestDTO;
 import com.crm.modules.marketing.dto.response.CompteSocialResponseDTO;
 import com.crm.modules.marketing.dto.response.GenererContenuResponseDTO;
 import com.crm.modules.marketing.dto.response.PublicationResponseDTO;
+import com.crm.modules.marketing.dto.response.StatistiquesPublicationDTO;
 import com.crm.modules.marketing.service.IMarketingService;
+import com.crm.modules.marketing.service.IMarketingStatsService;
 import com.crm.modules.marketing.service.MetaOAuthService;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
 import com.crm.shared.response.ApiResponse;
@@ -40,6 +42,7 @@ import java.util.List;
 public class MarketingController {
 
     private final IMarketingService marketingService;
+    private final IMarketingStatsService marketingStatsService;
     private final MetaOAuthService metaOAuthService;
 
     @Operation(summary = "Générer du contenu via IA",
@@ -129,6 +132,27 @@ public class MarketingController {
         return ResponseEntity.ok(ApiResponse.success(
                 marketingService.obtenirPublication(id, proprietaire.getId()),
                 "Publication récupérée."));
+    }
+
+    @Operation(summary = "Statistiques Facebook d'une publication",
+            description = "Vues, engagement et courbe des vues journalières "
+                    + "d'une publication PUBLIEE (via l'API Graph)")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200", description = "Statistiques récupérées"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400", description = "Publication non publiée"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404", description = "Publication introuvable")
+    })
+    @PreAuthorize("hasAuthority('ROLE_PROPRIETAIRE')")
+    @GetMapping("/publications/{id}/statistiques")
+    public ResponseEntity<ApiResponse<StatistiquesPublicationDTO>> statistiquesPublication(
+            @Parameter(description = "Identifiant de la publication") @PathVariable Long id,
+            @AuthenticationPrincipal ProprietaireEntreprise proprietaire) {
+        return ResponseEntity.ok(ApiResponse.success(
+                marketingStatsService.getStatistiquesPublication(id, proprietaire.getId()),
+                "Statistiques récupérées."));
     }
 
     @Operation(summary = "Modifier une publication",

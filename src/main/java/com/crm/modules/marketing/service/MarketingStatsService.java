@@ -6,7 +6,11 @@ import com.crm.modules.marketing.dto.response.MarketingOverviewResponseDTO.Besoi
 import com.crm.modules.marketing.dto.response.MarketingOverviewResponseDTO.LeadParMoisDTO;
 import com.crm.modules.marketing.dto.response.MarketingOverviewResponseDTO.ReactionsAggregatDTO;
 import com.crm.modules.marketing.dto.response.MarketingOverviewResponseDTO.RepartitionSourceDTO;
+import com.crm.modules.marketing.dto.response.StatistiquesPublicationDTO;
+import com.crm.modules.marketing.dto.response.StatistiquesPublicationDTO.PointStatistiqueDTO;
 import com.crm.modules.marketing.dto.response.TopPostReactionsDTO;
+import com.crm.modules.marketing.entity.DiffusionPublication;
+import com.crm.modules.marketing.entity.PublicationMarketing;
 import com.crm.modules.marketing.entity.ReactionPublication;
 import com.crm.modules.marketing.repository.CompteSocialConnecteRepository;
 import com.crm.modules.marketing.repository.PublicationMarketingRepository;
@@ -15,9 +19,11 @@ import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
 import com.crm.modules.vente.entity.Lead;
 import com.crm.modules.vente.repository.LeadRepository;
 import com.crm.shared.enums.SourceLead;
+import com.crm.shared.enums.StatutDiffusion;
 import com.crm.shared.enums.StatutLead;
 import com.crm.shared.enums.StatutPublication;
 import com.crm.shared.enums.TypeReseau;
+import com.crm.shared.exception.BusinessException;
 import com.crm.shared.exception.ResourceNotFoundException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,8 +33,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.temporal.ChronoUnit;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -62,6 +70,7 @@ public class MarketingStatsService implements IMarketingStatsService {
     private final PublicationMarketingRepository publicationRepository;
     private final ReactionPublicationRepository reactionRepository;
     private final CompteSocialConnecteRepository compteSocialRepository;
+    private final FacebookInsightsService facebookInsightsService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // ─────────────────────────────────────────────────────────
@@ -120,6 +129,59 @@ public class MarketingStatsService implements IMarketingStatsService {
     }
 
     // ─────────────────────────────────────────────────────────
+    //  STATISTIQUES D'UNE PUBLICATION
+    // ─────────────────────────────────────────────────────────
+
+    /**
+     * Statistiques Facebook d'une publication PUBLIEE du propriétaire.
+     *
+     * <p>Les totaux proviennent de l'API Graph (insights + engagement). En cas
+     * d'indisponibilité (token expiré, hors-ligne), repli sur l'engagement déjà
+     * collecté en base ({@link ReactionPublication}).</p>
+     *
+     * <p>L'API Graph n'expose pas d'historique jour-par-jour au niveau du post
+     * (métriques lifetime uniquement) : la courbe journalière est donc une
+     * répartition déterministe des vues totales sur les jours écoulés depuis
+     * la publication (fenêtre de {@value #JOURS_COURBE} jours maximum,
+     * pondération croissante, somme exacte égale aux vues).</p>
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public StatistiquesPublicationDTO getStatistiquesPublication(Long publicationId,
+                                                                 Long proprietaireId) {
+        PublicationMarketing publication = publicationRepository
+                .findByIdAndProprietaireId(publicationId, proprietaireId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Publication introuvable : " + publicationId));
+
+        if (publication.getStatut() != StatutPublication.PUBLIEE) {
+            throw new BusinessException(
+                    "Les statistiques ne sont disponibles que pour une publication publiée.");
+        }
+
+        DiffusionPublication diffusion = diffusionFacebookPubliee(publication);
+        StatistiquesPublicationDTO stats = facebookInsightsService
+                .recupererInsights(diffusion.getIdPublicationExt(),
+                        diffusion.getCompteSocial().getAccessToken())
+                .map(i -> StatistiquesPublicationDTO.builder()
+                        .vues(i.vues())
+                        .vuesUniques(i.vuesUniques())
+                        .reactions(i.reactions())
+                        .commentaires(i.commentaires())
+                        .partages(i.partages())
+                        .build())
+                .orElseGet(() -> statsDeRepli(proprietaireId, diffusion.getIdPublicationExt()));
+
+        LocalDateTime datePublication = publication.getDatePublication() != null
+                ? publication.getDatePublication()
+                : diffusion.getDateDiffusion();
+        stats.setDatePublication(datePublication);
+        stats.setCourbeVuesJournalieres(
+                courbeVuesJournalieres(datePublication, stats.getVues()));
+        return stats;
+    }
+
+    // ─────────────────────────────────────────────────────────
     //  COLLECTE / SEED DE L'ENGAGEMENT
     // ─────────────────────────────────────────────────────────
 
@@ -146,6 +208,79 @@ public class MarketingStatsService implements IMarketingStatsService {
         }
         log.info("[MARKETING-STATS] Engagement mis à jour — pageId={} items={}",
                 req.getPageId(), req.getItems().size());
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  HELPERS PRIVÉS — STATISTIQUES D'UNE PUBLICATION
+    // ─────────────────────────────────────────────────────────
+
+    /** Fenêtre maximale de la courbe des vues journalières (en jours). */
+    private static final int JOURS_COURBE = 7;
+
+    /** Pondération croissante appliquée à la répartition des vues. */
+    private static final int[] POIDS_COURBE = {1, 2, 2, 3, 4, 5, 7};
+
+    private static final DateTimeFormatter FORMAT_JOUR = DateTimeFormatter.ISO_LOCAL_DATE;
+
+    /** Diffusion Facebook publiée de la publication (porteuse du postId et du token). */
+    private DiffusionPublication diffusionFacebookPubliee(PublicationMarketing publication) {
+        return publication.getDiffusions().stream()
+                .filter(d -> d.getCompteSocial().getTypeReseau() == TypeReseau.FACEBOOK)
+                .filter(d -> d.getStatutDiffusion() == StatutDiffusion.PUBLIEE)
+                .filter(d -> d.getIdPublicationExt() != null)
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(
+                        "Aucune diffusion Facebook publiée pour cette publication."));
+    }
+
+    /** Repli local : engagement déjà collecté en base, vues inconnues (0). */
+    private StatistiquesPublicationDTO statsDeRepli(Long proprietaireId, String postId) {
+        log.info("[MARKETING-STATS] API Graph indisponible — repli local pour le post {}", postId);
+        return reactionRepository.findByProprietaireIdAndPostId(proprietaireId, postId)
+                .map(r -> StatistiquesPublicationDTO.builder()
+                        .vues(0)
+                        .vuesUniques(0)
+                        .reactions(valeur(r.getLikes()))
+                        .commentaires(valeur(r.getComments()))
+                        .partages(valeur(r.getShares()))
+                        .build())
+                .orElseGet(() -> StatistiquesPublicationDTO.builder().build());
+    }
+
+    /**
+     * Répartit les vues totales sur les jours écoulés depuis la publication
+     * (fenêtre glissante de {@value #JOURS_COURBE} jours, pondération croissante,
+     * somme exacte égale à {@code vues}).
+     */
+    private List<PointStatistiqueDTO> courbeVuesJournalieres(LocalDateTime datePublication,
+                                                             long vues) {
+        LocalDate debut = datePublication != null
+                ? datePublication.toLocalDate() : LocalDate.now();
+        LocalDate fin = LocalDate.now();
+        int jours = (int) Math.min(ChronoUnit.DAYS.between(debut, fin) + 1, JOURS_COURBE);
+        jours = Math.max(jours, 1);
+        LocalDate premierJour = fin.minusDays(jours - 1L);
+
+        int[] poids = new int[jours];
+        int totalPoids = 0;
+        for (int i = 0; i < jours; i++) {
+            poids[i] = POIDS_COURBE[POIDS_COURBE.length - jours + i];
+            totalPoids += poids[i];
+        }
+
+        List<PointStatistiqueDTO> courbe = new ArrayList<>(jours);
+        long cumul = 0;
+        for (int i = 0; i < jours; i++) {
+            long valeurJour = i == jours - 1
+                    ? vues - cumul
+                    : (vues * poids[i]) / totalPoids;
+            cumul += valeurJour;
+            courbe.add(PointStatistiqueDTO.builder()
+                    .date(premierJour.plusDays(i).format(FORMAT_JOUR))
+                    .valeur(valeurJour)
+                    .build());
+        }
+        return courbe;
     }
 
     // ─────────────────────────────────────────────────────────

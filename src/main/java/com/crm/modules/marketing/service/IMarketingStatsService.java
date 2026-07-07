@@ -2,6 +2,7 @@ package com.crm.modules.marketing.service;
 
 import com.crm.modules.marketing.dto.request.ReactionsSeedRequestDTO;
 import com.crm.modules.marketing.dto.response.MarketingOverviewResponseDTO;
+import com.crm.modules.marketing.dto.response.StatistiquesPublicationDTO;
 import com.crm.modules.marketing.dto.response.TopPostReactionsDTO;
 
 import java.util.List;
@@ -23,4 +24,7 @@ public interface IMarketingStatsService {
 
     /** Enregistre (ou met à jour) l'engagement public des publications d'une page. */
     void upsertReactions(ReactionsSeedRequestDTO request);
+
+    /** Statistiques Facebook d'une publication PUBLIEE (vues, engagement, courbe). */
+    StatistiquesPublicationDTO getStatistiquesPublication(Long publicationId, Long proprietaireId);
 }
