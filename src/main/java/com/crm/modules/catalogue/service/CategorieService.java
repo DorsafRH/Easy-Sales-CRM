@@ -109,12 +109,11 @@ public class CategorieService implements ICategorieService {
     @Override
     public void supprimerCategorie(Long id, Long proprietaireId) {
         Categorie cat = charger(id, proprietaireId);
-        long nbActifs = produitRepository.countByCategorieIdAndStatut(
-                id, StatutProduit.ACTIF);
-        if (nbActifs > 0) {
+        int nbProduits = produitRepository.countByCategorieId(id);
+        if (nbProduits > 0) {
             throw new BusinessException(
-                    "Cette catégorie contient " + nbActifs + " produit(s) actif(s). "
-                            + "Désactivez-les ou retirez leur catégorie avant de supprimer.");
+                    "Cette catégorie est encore liée à " + nbProduits + " produit(s). "
+                            + "Retirez leur catégorie ou désactivez-les avant de supprimer.");
         }
         categorieRepository.delete(cat);
         log.info("[CATEGORIE] Supprimée — id={}", id);

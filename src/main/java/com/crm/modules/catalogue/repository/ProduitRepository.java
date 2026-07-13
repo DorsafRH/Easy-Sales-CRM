@@ -39,10 +39,12 @@ public interface ProduitRepository
 
     /**
      * Compte les produits d'une catégorie selon leur statut.
-     * Utilisé pour enrichir {@code CategorieResponse#nbProduits}
-     * et pour valider la suppression d'une catégorie.
+     * Utilisé pour enrichir {@code CategorieResponse#nbProduits}.
      */
     int countByCategorieIdAndStatut(Long categorieId, StatutProduit statut);
+
+    /** Compte tous les produits d'une catégorie, quel que soit leur statut. */
+    int countByCategorieId(Long categorieId);
 
     /**
      * Compte les produits d'un propriétaire selon leur statut.

@@ -292,8 +292,7 @@ class CategorieServiceTest {
         void categorieVide_succes() {
             when(categorieRepository.findByIdAndProprietaireId(10L, 1L))
                     .thenReturn(Optional.of(categorie));
-            when(produitRepository.countByCategorieIdAndStatut(10L, StatutProduit.ACTIF))
-                    .thenReturn(0);
+            when(produitRepository.countByCategorieId(10L)).thenReturn(0);
 
             categorieService.supprimerCategorie(10L, 1L);
 
@@ -301,16 +300,15 @@ class CategorieServiceTest {
         }
 
         @Test
-        @DisplayName("Catégorie avec produits actifs — lève BusinessException, aucun delete")
-        void avecProduitsActifs_leveException() {
+        @DisplayName("Catégorie avec produits liés — lève BusinessException, aucun delete")
+        void avecProduitsLies_leveException() {
             when(categorieRepository.findByIdAndProprietaireId(10L, 1L))
                     .thenReturn(Optional.of(categorie));
-            when(produitRepository.countByCategorieIdAndStatut(10L, StatutProduit.ACTIF))
-                    .thenReturn(5);
+            when(produitRepository.countByCategorieId(10L)).thenReturn(5);
 
             assertThatThrownBy(() -> categorieService.supprimerCategorie(10L, 1L))
                     .isInstanceOf(BusinessException.class)
-                    .hasMessageContaining("produit(s) actif(s)");
+                    .hasMessageContaining("produit(s)");
 
             verify(categorieRepository, never()).delete(any(Categorie.class));
         }
