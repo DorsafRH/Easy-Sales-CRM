@@ -15,16 +15,27 @@ import com.crm.shared.enums.TypeActivite;
 import com.crm.shared.exception.BusinessException;
 import com.crm.shared.exception.ResourceNotFoundException;
 import com.crm.shared.response.PageResponse;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Service métier — Clients.
@@ -38,6 +49,18 @@ import java.math.BigDecimal;
 @Transactional
 public class ClientService implements IClientService {
 
+    private static final String VISION_MODEL = "llama-3.2-11b-vision-preview";
+    private static final String PROMPT_OCR = """
+            Analyse cette image. Elle contient une liste ou un tableau de clients (imprimé ou manuscrit).
+            Extrais toutes les personnes ou entreprises visibles et retourne UNIQUEMENT un tableau JSON :
+            [{"typeClient":"INDIVIDUEL","nom":"...","prenom":"...","telephone":"...","email":"...","ville":"..."},
+             {"typeClient":"ENTREPRISE","raisonSociale":"...","telephone":"...","email":"...","ville":"..."}]
+            Règles : typeClient = "INDIVIDUEL" pour personne physique, "ENTREPRISE" pour société.
+            Pour INDIVIDUEL : nom et prenom obligatoires. Pour ENTREPRISE : raisonSociale obligatoire.
+            Omets les champs absents. Retourne UNIQUEMENT le tableau JSON, sans texte avant/après.
+            Si image illisible ou vide : retourne [].
+            """;
+
     private final ClientRepository clientRepository;
     private final ContactRepository contactRepository;
     private final ClientMapper clientMapper;
@@ -47,6 +70,12 @@ public class ClientService implements IClientService {
      * Bonne pratique SOLID D : dépendre d'une abstraction, pas d'une implémentation.
      */
     private final IActiviteService activiteService;
+
+    @Value("${groq.api.key}")
+    private String groqApiKey;
+
+    @Value("${groq.api.url:https://api.groq.com/openai/v1/chat/completions}")
+    private String groqApiUrl;
 
     // ─────────────────────────────────────────────────────────────────────────
     //  LISTE
@@ -140,6 +169,69 @@ public class ClientService implements IClientService {
                 "Client supprimé",
                 nomAffichage,
                 id, "CLIENT", null, proprietaire);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  IMPORT PHOTO OCR
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClientRequest> extraireClientsDepuisPhoto(MultipartFile image) {
+        try {
+            String base64 = Base64.getEncoder().encodeToString(image.getBytes());
+            String mimeType = image.getContentType() != null ? image.getContentType() : "image/jpeg";
+            String dataUrl = "data:" + mimeType + ";base64," + base64;
+
+            Map<String, Object> body = Map.of(
+                    "model", VISION_MODEL,
+                    "messages", List.of(Map.of(
+                            "role", "user",
+                            "content", List.of(
+                                    Map.of("type", "text", "text", PROMPT_OCR),
+                                    Map.of("type", "image_url", "image_url", Map.of("url", dataUrl))
+                            ))),
+                    "max_tokens", 2000,
+                    "temperature", 0.1);
+
+            RestClient restClient = RestClient.builder().baseUrl(groqApiUrl).build();
+            Map<?, ?> response = restClient.post()
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + groqApiKey)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .body(Map.class);
+
+            return parseClientsDepuisReponse(response);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("[CLIENT OCR] Erreur : {}", e.getMessage());
+            throw new BusinessException("Erreur lors de l'analyse de l'image : " + e.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<ClientRequest> parseClientsDepuisReponse(Map<?, ?> response) {
+        try {
+            Object choices = response != null ? response.get("choices") : null;
+            if (!(choices instanceof List<?> liste) || liste.isEmpty()) return Collections.emptyList();
+
+            Map<String, Object> message = (Map<String, Object>) ((Map<?, ?>) liste.get(0)).get("message");
+            if (message == null) return Collections.emptyList();
+
+            String json = String.valueOf(message.get("content")).trim();
+            // Extraire uniquement le tableau JSON (le LLM peut ajouter du texte autour)
+            int debut = json.indexOf('[');
+            int fin = json.lastIndexOf(']');
+            if (debut == -1 || fin == -1 || fin <= debut) return Collections.emptyList();
+            json = json.substring(debut, fin + 1);
+
+            return new ObjectMapper().readValue(json, new TypeReference<>() {});
+        } catch (Exception e) {
+            log.warn("[CLIENT OCR] Parsing JSON échoué : {}", e.getMessage());
+            return Collections.emptyList();
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────

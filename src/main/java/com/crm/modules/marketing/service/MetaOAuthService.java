@@ -35,8 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MetaOAuthService {
 
     private static final String SCOPES =
-            "pages_manage_posts,pages_read_engagement,pages_show_list,"
-                    + "instagram_content_publish,instagram_basic";
+            "pages_manage_posts,pages_show_list,pages_read_engagement";
 
     private final RestClient restClient = RestClient.create();
     private final ObjectMapper objectMapper = new ObjectMapper();

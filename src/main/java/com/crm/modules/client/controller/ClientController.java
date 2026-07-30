@@ -11,10 +11,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 /**
  * REST Controller — Clients CRM.
@@ -87,5 +91,16 @@ public class ClientController {
 
         clientService.supprimer(id, proprietaire.getId());
         return ResponseEntity.ok(ApiResponse.success("Client supprimé."));
+    }
+
+    @Operation(summary = "Détecter des clients depuis une photo via OCR Groq Vision")
+    @PostMapping(value = "/import/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<List<ClientRequest>>> importerDepuisPhoto(
+            @RequestParam("image") MultipartFile image,
+            @AuthenticationPrincipal ProprietaireEntreprise proprietaire) {
+
+        return ResponseEntity.ok(ApiResponse.success(
+                clientService.extraireClientsDepuisPhoto(image),
+                "Clients détectés."));
     }
 }

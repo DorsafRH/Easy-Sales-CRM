@@ -4,6 +4,9 @@ import com.crm.modules.client.dto.ClientRequest;
 import com.crm.modules.client.dto.ClientResponse;
 import com.crm.modules.utilisateur.entity.ProprietaireEntreprise;
 import com.crm.shared.response.PageResponse;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 /**
  * Contrat du service de gestion des clients.
@@ -22,4 +25,6 @@ public interface IClientService {
     ClientResponse modifier(Long id, ClientRequest request, Long proprietaireId);
 
     void supprimer(Long id, Long proprietaireId);
+
+    List<ClientRequest> extraireClientsDepuisPhoto(MultipartFile image);
 }
